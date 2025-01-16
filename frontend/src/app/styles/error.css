@@ -1,0 +1,121 @@
+.error-wrapper {
+  position: relative;
+  padding: 1rem 3rem 1rem 3.5rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.error-wrapper.error {
+  background-color: #FEE2E2;
+  border: 2px solid #EF4444;
+  color: #991B1B;
+}
+
+.error-wrapper.warning {
+  background-color: #FEF3C7;
+  border: 2px solid #F59E0B;
+  color: #92400E;
+}
+
+.error-wrapper.success {
+  background-color: #D1FAE5;
+  border: 2px solid #10B981;
+  color: #065F46;
+}
+
+.error-icon-wrapper {
+  position: absolute;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Icon specific styles */
+.error-wrapper.error .error-icon {
+  background-color: #EF4444;
+  color: #FEE2E2;
+}
+
+.error-wrapper.warning .error-icon {
+  background-color: #F59E0B;
+  color: #FEF3C7;
+}
+
+.error-wrapper.success .error-icon {
+  background-color: #10B981;
+  color: #D1FAE5;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.error-action {
+  margin-top: 0.5rem;
+}
+
+.error-action a {
+  color: inherit;
+  text-decoration: underline;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.error-dismiss {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: currentColor;
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.error-dismiss:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
