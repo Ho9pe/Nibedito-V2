@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Error from '@/components/common/Error';
+import userService from '@/services/userService';
 
 export default function UserProfile({ user }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -15,7 +16,10 @@ export default function UserProfile({ user }) {
       setFormData({
         name: user.name || '',
         phone: user.phone || '',
-        address: user.address || ''
+        street: user?.addresses?.[0]?.street || '',
+        city: user?.addresses?.[0]?.city || '',
+        state: user?.addresses?.[0]?.state || '',
+        postalCode: user?.addresses?.[0]?.postalCode || ''
       });
       setIsLoading(false);
     }
@@ -41,16 +45,45 @@ export default function UserProfile({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setStatus({ type: '', message: '' });
+
     try {
+      // Update user profile (name and phone)
+      const updatedUser = await userService.updateProfile(user._id, {
+        name: formData.name,
+        phone: formData.phone
+      });
+
+      // Handle address update/creation
+      const addressData = {
+        street: formData.street,
+        city: formData.city,
+        state: formData.state,
+        postalCode: formData.postalCode,
+        isDefault: true
+      };
+
+      if (user.addresses?.[0]?._id) {
+        await userService.updateAddress(user._id, user.addresses[0]._id, addressData);
+      } else {
+        await userService.addAddress(user._id, addressData);
+      }
+
       setStatus({
         type: 'success',
         message: 'Profile updated successfully'
       });
       setIsEditing(false);
+      
+      // Update local storage with the latest user data
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Force a page refresh to update the UI with new data
+      window.location.reload();
     } catch (error) {
+      console.error('Profile update error:', error);
       setStatus({
         type: 'error',
-        message: error.message
+        message: error.message || 'Failed to update profile'
       });
     } finally {
       setIsLoading(false);
@@ -115,15 +148,52 @@ export default function UserProfile({ user }) {
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="address">Address</label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              rows={3}
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="street">Street Address</label>
+              <input
+                type="text"
+                id="street"
+                name="street"
+                value={formData.street}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="postalCode">Postal Code</label>
+              <input
+                type="text"
+                id="postalCode"
+                name="postalCode"
+                value={formData.postalCode}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div className="city-state-row">
+            <div className="form-group">
+              <label htmlFor="city">City</label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="state">State</label>
+              <input
+                type="text"
+                id="state"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div className="button-group">
@@ -151,7 +221,16 @@ export default function UserProfile({ user }) {
           </div>
           <div className="detail-item">
             <span className="label">Address:</span>
-            <span>{user.address || 'Not provided'}</span>
+            <span>
+              {user.addresses?.[0] ? (
+                <>
+                  {user.addresses[0].street}, {user.addresses[0].city}, 
+                  {user.addresses[0].state} {user.addresses[0].postalCode}
+                </>
+              ) : (
+                'Not provided'
+              )}
+            </span>
           </div>
           <button 
             onClick={() => setIsEditing(true)}

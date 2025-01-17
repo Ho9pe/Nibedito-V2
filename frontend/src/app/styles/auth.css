@@ -268,3 +268,119 @@
   justify-content: center;
   align-items: center;
 }
+
+/* Address Section Styles */
+.addresses-section {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.address-form {
+  background-color: var(--background-color);
+  padding: 1.5rem;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.city-state-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-row .form-group,
+.city-state-row .form-group {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.form-row .form-group input,
+.city-state-row .form-group input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.addresses-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.address-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--background-color);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.address-details {
+  flex: 1;
+}
+
+.street {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.city-state {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.default-badge {
+  display: inline-block;
+  background-color: var(--accent-color);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.address-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent-color);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 640px) {
+  .form-row,
+  .city-state-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

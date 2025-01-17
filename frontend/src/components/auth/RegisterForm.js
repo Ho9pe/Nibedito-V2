@@ -15,7 +15,10 @@ export default function RegisterForm() {
     email: '',
     phone: '',
     password: '',
-    address: ''
+    street: '',
+    city: '',
+    state: '',
+    postalCode: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -59,6 +62,13 @@ export default function RegisterForm() {
         setErrors(prev => ({ ...prev, email: error.message }));
       } else if (error.message.toLowerCase().includes('phone')) {
         setErrors(prev => ({ ...prev, phone: error.message }));
+      } else if (error.message.toLowerCase().includes('address')) {
+        const addressFields = ['street', 'city', 'state', 'postalCode'];
+        addressFields.forEach(field => {
+          if (error.message.toLowerCase().includes(field)) {
+            setErrors(prev => ({ ...prev, [field]: error.message }));
+          }
+        });
       } else {
         setErrors(prev => ({ ...prev, general: error.message }));
       }
@@ -137,17 +147,60 @@ export default function RegisterForm() {
         {errors.password && <span className="error-message">{errors.password}</span>}
       </div>
 
-      <div className="form-group">
-        <label htmlFor="address">Address</label>
-        <textarea
-          id="address"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          className={errors.address ? 'error' : ''}
-          rows={3}
-        />
-        {errors.address && <span className="error-message">{errors.address}</span>}
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="street">Street Address</label>
+          <input
+            type="text"
+            id="street"
+            name="street"
+            value={formData.street}
+            onChange={handleChange}
+            className={errors.street ? 'error' : ''}
+          />
+          {errors.street && <span className="error-message">{errors.street}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="postalCode">Postal Code</label>
+          <input
+            type="text"
+            id="postalCode"
+            name="postalCode"
+            value={formData.postalCode}
+            onChange={handleChange}
+            className={errors.postalCode ? 'error' : ''}
+          />
+          {errors.postalCode && <span className="error-message">{errors.postalCode}</span>}
+        </div>
+      </div>
+
+      <div className="city-state-row">
+        <div className="form-group">
+          <label htmlFor="city">City</label>
+          <input
+            type="text"
+            id="city"
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            className={errors.city ? 'error' : ''}
+          />
+          {errors.city && <span className="error-message">{errors.city}</span>}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="state">State</label>
+          <input
+            type="text"
+            id="state"
+            name="state"
+            value={formData.state}
+            onChange={handleChange}
+            className={errors.state ? 'error' : ''}
+          />
+          {errors.state && <span className="error-message">{errors.state}</span>}
+        </div>
       </div>
 
       <button 

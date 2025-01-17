@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/userModel');
+const Admin = require('../models/adminModel');
 const { successResponse } = require('./responseController');
 const { jwtAccessKey, jwtRefreshKey } = require('../secret');
 const { createJSONWebToken } = require('../helper/jsonwebtoken');
@@ -40,7 +41,7 @@ const handleLogin = async (req, res, next) => {
             name: user.name,
             email: user.email,
             phone: user.phone,
-            address: user.address,
+            addresses: user.addresses,
             profilePicture: user.profilePicture,
             isBanned: user.isBanned,
             verificationStatus: user.verificationStatus
@@ -247,6 +248,12 @@ const processRegister = async (req, res, next) => {
         if (!name || !email || !password || !phone || !address) {
             throw createError(400, 'All fields are required');
         }
+
+        // Validate address fields
+        if (!address.street || !address.city || !address.state || !address.postalCode) {
+            throw createError(400, 'All address fields are required');
+        }
+
         // Check if user already exists with this email or phone
         const userExists = await User.findOne({ 
             $or: [
@@ -262,20 +269,23 @@ const processRegister = async (req, res, next) => {
                 throw createError(409, 'User already exists with this phone number');
             }
         }
+
         // Create and save unverified user
         const newUser = new User({ 
             name, 
             email, 
             password, 
-            phone, 
-            address,
+            phone,
+            addresses: [{
+                ...address,
+                isDefault: true
+            }],
             verificationStatus: {
                 email: false,
                 phone: false
             }
         });
 
-        // Validate the user instance
         try {
             await newUser.validate();
             await newUser.save();
@@ -283,6 +293,7 @@ const processRegister = async (req, res, next) => {
             const errors = Object.values(validationError.errors).map(err => err.message);
             return next(createError(400, errors.join(', ')));
         }
+
         // Create jsonwebtoken
         const token = createJSONWebToken({ 
             userId: newUser._id,
@@ -450,5 +461,5 @@ module.exports = {
     processRegister,
     activeUserAccount,
     verifyNewEmail,
-    resendVerification,
+    resendVerification
 };

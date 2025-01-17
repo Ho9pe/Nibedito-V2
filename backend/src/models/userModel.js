@@ -3,6 +3,33 @@ const bcrypt = require('bcryptjs');
 
 const { defaultPicture } = require('../secret');
 
+const addressSchema = new Schema({
+    street: {
+        type: String,
+        required: [true, 'Street address is required'],
+        trim: true
+    },
+    city: {
+        type: String,
+        required: [true, 'City is required'],
+        trim: true
+    },
+    state: {
+        type: String,
+        required: [true, 'State is required'],
+        trim: true
+    },
+    postalCode: {
+        type: String,
+        required: [true, 'Postal code is required'],
+        trim: true
+    },
+    isDefault: {
+        type: Boolean,
+        default: false
+    }
+}, { timestamps: true });
+
 const userSchema = new Schema({
     name: {
         type: String,
@@ -39,10 +66,23 @@ const userSchema = new Schema({
         type: String,
         default: defaultPicture,
     },
-    address: {
-        type: String,
-        required: [true, 'Address is required'],
-        trim: true,
+    addresses: {
+        type: [addressSchema],
+        validate: [
+            {
+                validator: function(addresses) {
+                    return addresses.length <= 5;
+                },
+                message: 'You can only have up to 5 addresses'
+            },
+            {
+                validator: function(addresses) {
+                    // Check if only one address is marked as default
+                    return addresses.filter(addr => addr.isDefault).length <= 1;
+                },
+                message: 'Only one address can be set as default'
+            }
+        ]
     },
     phone: {
         type: String,

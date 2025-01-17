@@ -1,8 +1,11 @@
 const createError = require('http-errors');
 const bcrypt = require('bcryptjs');
+
+const { deleteImage } = require('../helper/deleteImage');
 const User = require('../models/userModel');
 const Admin = require('../models/adminModel');
 const { successResponse } = require('./responseController');
+const { findWithID } = require('../services/findItem');
 const { createJSONWebToken } = require('../helper/jsonwebtoken');
 const { jwtAccessKey } = require('../secret');
 
@@ -28,6 +31,7 @@ const handleAdminLogin = async (req, res, next) => {
             _id: admin._id,
             name: admin.name,
             email: admin.email,
+            phone: admin.phone,
             role: admin.role
         };
 
@@ -69,7 +73,7 @@ const handleAdminLogout = async (req, res, next) => {
 
 const createAdmin = async (req, res, next) => {
     try {
-        const { name, email, password, phone } = req.body;
+        const { name, email, password, phone, role } = req.body;
         
         const adminExists = await Admin.findOne({ 
             $or: [{ email }, { phone }] 
@@ -79,12 +83,15 @@ const createAdmin = async (req, res, next) => {
             throw createError(409, 'Admin already exists with this email or phone');
         }
 
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         const newAdmin = new Admin({
             name,
             email,
-            password,
+            password: hashedPassword,
             phone,
-            role: 'admin' // default role
+            role: role || 'admin'
         });
 
         await newAdmin.save();
@@ -185,12 +192,222 @@ const unbanUserById = async (req, res, next) => {
     }
 };
 
+const getUserStats = async (req, res, next) => {
+    try {
+        const stats = await User.aggregate([
+            {
+                $facet: {
+                    // Basic user counts
+                    'overview': [
+                        {
+                            $group: {
+                                _id: null,
+                                totalUsers: { $sum: 1 },
+                                activeUsers: {
+                                    $sum: { $cond: [{ $eq: ["$isBanned", false] }, 1, 0] }
+                                },
+                                bannedUsers: {
+                                    $sum: { $cond: [{ $eq: ["$isBanned", true] }, 1, 0] }
+                                }
+                            }
+                        }
+                    ],
+                    // Recent registrations (last 7 days)
+                    'recentRegistrations': [
+                        {
+                            $match: {
+                                createdAt: { 
+                                    $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) 
+                                }
+                            }
+                        },
+                        { $count: 'count' }
+                    ],
+                    // Verification stats
+                    'verificationStats': [
+                        {
+                            $group: {
+                                _id: null,
+                                emailVerified: {
+                                    $sum: { $cond: [{ $eq: ["$verificationStatus.email", true] }, 1, 0] }
+                                },
+                                phoneVerified: {
+                                    $sum: { $cond: [{ $eq: ["$verificationStatus.phone", true] }, 1, 0] }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+
+        const formattedStats = {
+            totalUsers: stats[0].overview[0]?.totalUsers || 0,
+            activeUsers: stats[0].overview[0]?.activeUsers || 0,
+            bannedUsers: stats[0].overview[0]?.bannedUsers || 0,
+            recentRegistrations: stats[0].recentRegistrations[0]?.count || 0,
+            verificationStats: {
+                emailVerified: stats[0].verificationStats[0]?.emailVerified || 0,
+                phoneVerified: stats[0].verificationStats[0]?.phoneVerified || 0
+            }
+        };
+
+        return successResponse(res, {
+            statusCode: 200,
+            message: 'User statistics retrieved successfully',
+            payload: formattedStats
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getAllUsers = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search || '';
+        const sortBy = req.query.sortBy || 'createdAt';
+        const order = req.query.order || 'desc';
+        const filter = req.query.filter || 'all'; // all, active, banned
+
+        const searchRegex = new RegExp(search, 'i');
+        const query = {
+            $or: [
+                { name: searchRegex },
+                { email: searchRegex },
+                { phone: searchRegex }
+            ]
+        };
+
+        // Apply filter
+        if (filter === 'active') {
+            query.isBanned = false;
+        } else if (filter === 'banned') {
+            query.isBanned = true;
+        }
+
+        const users = await User.find(query)
+            .select('-password')
+            .sort({ [sortBy]: order === 'desc' ? -1 : 1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        const total = await User.countDocuments(query);
+
+        return successResponse(res, {
+            statusCode: 200,
+            message: 'Users retrieved successfully',
+            payload: {
+                users,
+                pagination: {
+                    total,
+                    pages: Math.ceil(total / limit),
+                    page,
+                    limit
+                }
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getUserById = async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        const options = { password: 0 };
+        const user = await findWithID(User, id, options);
+        if (!user) {
+            throw createError(404, 'User not found');
+        }
+        return successResponse(res, {
+            statusCode: 200,
+            message: 'User fetched successfully',
+            payload: {
+                user,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteUserById = async (req, res, next) => {
+    try {
+        const id = req.params.id;
+        const options = { password: 0 };
+        const user = await findWithID(User, id, options);
+
+        const userImagePath = user.profilePicture;
+        if(userImagePath){
+            deleteImage(userImagePath);
+        }
+        /*
+        if (user.profilePicture !== defaultPicture) {
+            await cloudinary.uploader.destroy(user.profilePicture);
+        }
+        */
+        await User.findByIdAndDelete(id);
+
+        return successResponse(res, {
+            statusCode: 200,
+            message: 'User deleted successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateUserById = async (req, res, next) => {
+    try {
+        const userId = req.params.id;
+        const { name, email, phone, isBanned } = req.body;
+        
+        const user = await User.findById(userId);
+        if (!user) {
+            throw createError(404, 'User not found');
+        }
+
+        if (name) user.name = name;
+        if (email) {
+            user.email = email;
+            user.verificationStatus.email = false;
+        }
+        if (phone) {
+            user.phone = phone;
+            user.verificationStatus.phone = false;
+        }
+        if (isBanned !== undefined) user.isBanned = isBanned;
+
+        await user.save();
+        user.password = undefined;
+
+        return successResponse(res, {
+            statusCode: 200,
+            message: 'User updated successfully',
+            payload: { user }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 module.exports = {
+    // Admin authentication
     handleAdminLogin,
     handleAdminLogout,
+    // Admin management
     createAdmin,
     getAllAdmins,
     deleteAdmin,
+    // User management
+    getAllUsers,
+    getUserById,
+    getUserStats,
+    updateUserById,
+    deleteUserById,
     banUserById,
     unbanUserById
 };

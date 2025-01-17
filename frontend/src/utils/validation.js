@@ -17,9 +17,10 @@ export const validateRegistrationData = (data) => {
   }
 
   // Phone validation
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-  if (data.phone && !phoneRegex.test(data.phone.replace(/\s+/g, ''))) {
-    errors.phone = 'Please enter a valid phone number';
+  if (!data.phone?.trim()) {
+    errors.phone = 'Phone number is required';
+  } else if (!/^\d{10}$/.test(data.phone.trim())) {
+    errors.phone = 'Please enter a valid 10-digit phone number';
   }
 
   // Password validation
@@ -32,8 +33,20 @@ export const validateRegistrationData = (data) => {
   }
 
   // Address validation
-  if (data.address && data.address.length < 5) {
-    errors.address = 'Please enter a valid address';
+  if (!data.street?.trim()) {
+    errors.street = 'Street address is required';
+  }
+  
+  if (!data.city?.trim()) {
+    errors.city = 'City is required';
+  }
+  
+  if (!data.state?.trim()) {
+    errors.state = 'State is required';
+  }
+  
+  if (!data.postalCode?.trim()) {
+    errors.postalCode = 'Postal code is required';
   }
 
   return {

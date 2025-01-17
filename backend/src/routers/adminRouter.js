@@ -1,21 +1,24 @@
 const express = require('express');
 const adminRouter = express.Router();
+
 const { isAdmin, isSuperAdmin, isAdminLoggedIn, isAdminLoggedOut } = require('../middlewares/authMiddleware');
 const { 
-    handleAdminLogin, 
-    handleAdminLogout, 
-    createAdmin, 
-    getAllAdmins, 
+    // Admin authentication
+    handleAdminLogin,
+    handleAdminLogout,
+    // Admin management
+    createAdmin,
+    getAllAdmins,
     deleteAdmin,
+    // User management
+    getAllUsers,
+    getUserById,
+    getUserStats,
+    updateUserById,
+    deleteUserById,
     banUserById,
     unbanUserById
 } = require('../controllers/adminController');
-
-const { 
-    getAllUsers,
-    getUserById,
-} = require('../controllers/userController');
-
 
 // Admin authentication routes
 adminRouter.post('/login', isAdminLoggedOut, handleAdminLogin);
@@ -26,10 +29,13 @@ adminRouter.post('/create', isAdmin, isSuperAdmin, createAdmin);
 adminRouter.get('/admins', isAdmin, isSuperAdmin, getAllAdmins);
 adminRouter.delete('/admins/:id', isAdmin, isSuperAdmin, deleteAdmin);
 
-// User management routes (accessible by both admin and superadmin)
+// User Management
 adminRouter.get('/users', isAdmin, getAllUsers);
 adminRouter.get('/users/:id', isAdmin, getUserById);
-adminRouter.post('/users/:id/ban', isAdmin, banUserById);
-adminRouter.post('/users/:id/unban', isAdmin, unbanUserById);
+adminRouter.get('/users/stats', isAdmin, getUserStats);
+adminRouter.put('/users/:id', isAdmin, updateUserById);
+adminRouter.delete('/users/:id', isAdmin, deleteUserById);
+adminRouter.put('/users/:id/ban', isAdmin, banUserById);
+adminRouter.put('/users/:id/unban', isAdmin, unbanUserById);
 
 module.exports = adminRouter;

@@ -26,12 +26,6 @@ const adminSchema = new Schema({
         type: String,
         required: [true, 'Password is required'],
         minlength: [6, 'Password must be at least 6 characters long'],
-        validate: {
-            validator: function(v) {
-                return /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,}$/.test(v);
-            },
-            message: props => `Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)`
-        },
     },
     phone: {
         type: String,
@@ -55,15 +49,14 @@ const adminSchema = new Schema({
     }
 }, { timestamps: true });
 
-adminSchema.pre('save', async function(next) {
-    if (!this.isModified('password')) return next();
-    try {
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (error) {
-        next(error);
+adminSchema.pre('save', function(next) {
+    if (this.isModified('password')) {
+        const passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,}$/;
+        if (!passwordRegex.test(this.password)) {
+            next(new Error('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)'));
+        }
     }
+    next();
 });
 
 adminSchema.methods.isSuperAdmin = function() {

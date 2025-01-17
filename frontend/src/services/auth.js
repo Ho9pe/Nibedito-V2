@@ -35,29 +35,72 @@ export const authService = {
 
   async register(userData) {
     try {
-      const { data } = await axios.post('/auth/process-register', userData);
-      console.log('Server response:', data);
+      const { data } = await axios.post('/auth/process-register', {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        password: userData.password,
+        address: {
+          street: userData.street,
+          city: userData.city,
+          state: userData.state,
+          postalCode: userData.postalCode
+        }
+      });
       
-      if (data.statusCode === 200 || data.success) {
+      if (data.success) {
         return {
           success: true,
           message: data.message,
           email: userData.email
         };
-      } else {
-        throw new Error(data.message || 'Registration failed');
       }
+      throw new Error(data.message || 'Registration failed');
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration error:', error.response?.data || error);
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
       }
-      if (error.request) {
-        // The request was made but no response was received
-        throw new Error('No response from server. Please try again.');
+      throw new Error('Registration failed. Please try again.');
+    }
+  },
+
+  async addAddress(userId, addressData) {
+    try {
+      const { data } = await axios.post(`/users/${userId}/addresses`, addressData);
+      if (data.success && data.payload?.user) {
+        localStorage.setItem('user', JSON.stringify(data.payload.user));
+        return data.payload.user;
       }
-      // Something happened in setting up the request
-      throw new Error('Failed to make registration request. Please try again.');
+      throw new Error(data.message || 'Failed to add address');
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to add address');
+    }
+  },
+
+  async updateAddress(userId, addressId, addressData) {
+    try {
+      const { data } = await axios.put(`/users/${userId}/addresses/${addressId}`, addressData);
+      if (data.success && data.payload?.user) {
+        localStorage.setItem('user', JSON.stringify(data.payload.user));
+        return data.payload.user;
+      }
+      throw new Error(data.message || 'Failed to update address');
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to update address');
+    }
+  },
+
+  async deleteAddress(userId, addressId) {
+    try {
+      const { data } = await axios.delete(`/users/${userId}/addresses/${addressId}`);
+      if (data.success && data.payload?.user) {
+        localStorage.setItem('user', JSON.stringify(data.payload.user));
+        return data.payload.user;
+      }
+      throw new Error(data.message || 'Failed to delete address');
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to delete address');
     }
   },
 

@@ -59,13 +59,16 @@
 |--------|----------|--------------|------------------|-------------|
 | POST | /api/admin/login | {email, password} | {admin, token} | Admin login |
 | POST | /api/admin/logout | - | message | Admin logout |
-| POST | /api/admin/create | {name, email, password, phone} | message | Create new admin (superadmin only) |
-| GET | /api/admin/admins | - | {admins[]} | Get all admins (superadmin only) |
-| DELETE | /api/admin/admins/:id | - | message | Delete admin (superadmin only) |
+| POST | /api/admin/create | {name, email, password, phone, role} | message | Create new admin (Super Admin only) |
+| GET | /api/admin/admins | - | {admins[]} | Get all admins (Super Admin only) |
+| DELETE | /api/admin/admins/:id | - | message | Delete admin (Super Admin only) |
 | GET | /api/admin/users | - | {users[]} | Get all users |
 | GET | /api/admin/users/:id | - | {user} | Get user by ID |
-| POST | /api/admin/users/:id/ban | - | message | Ban user |
-| POST | /api/admin/users/:id/unban | - | message | Unban user |
+| GET | /api/admin/users/stats | - | {stats} | Get user statistics |
+| PUT | /api/admin/users/:id | {name, email, phone, isBanned} | {user} | Update user |
+| DELETE | /api/admin/users/:id | - | message | Delete user |
+| PUT | /api/admin/users/:id/ban | - | {user} | Ban user |
+| PUT | /api/admin/users/:id/unban | - | {user} | Unban user |
 
 ## Implementation References
 
