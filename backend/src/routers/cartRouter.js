@@ -1,8 +1,6 @@
 const express = require("express");
-const { userLogin, userLogout } = require("../controllers/authController");
-const { isLoggedOut, isLoggedIn } = require("../middlewares/auth");
-const { validateUserLogin } = require("../validators/user");
-const { runValidation } = require("../validators/validation");
+
+const { isLoggedIn } = require("../middlewares/auth");
 const {
   addItemToCart,
   getCart,

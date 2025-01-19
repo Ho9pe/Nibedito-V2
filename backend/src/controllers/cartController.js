@@ -1,25 +1,20 @@
 const { successResponse } = require("./responseController");
 const createError = require("http-errors");
 
-const Category = require("../models/categoryModel");
-
-const { default: slugify } = require("slugify");
 const Cart = require("../models/cartModel");
-const orderItem = require("../models/orderItemModel");
 const { default: mongoose } = require("mongoose");
 const Product = require("../models/productModel");
 
 const addItemToCart = async (req, res, next) => {
   try {
     const userId = req.user._id;
-    const { productId, quantity } = req.body;
+    const { productId, variantId, quantity } = req.body;
 
-    if (!productId || !quantity) {
-      throw createError(400, "Please provide product id and quantity");
-    }
-    // Ensure productId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      throw createError(400, "Invalid product id");
+    if (!productId || !quantity || !variantId) {
+      throw createError(
+        400,
+        "Please provide product id, variant id and quantity"
+      );
     }
 
     // Ensure quantity is a number
@@ -30,9 +25,17 @@ const addItemToCart = async (req, res, next) => {
     //console.log("Quantity:", quantity);
     //console.log("Parsed Quantity:", parsedQuantity);
 
+    // check if product exists
     const product = await Product.findById(productId);
     if (!product) {
       throw createError(404, "Product not found");
+    }
+    // check if variant exists
+    const variant = product.variants.find(
+      (variant) => variant._id.toString() === variantId
+    );
+    if (!variant) {
+      throw createError(404, "Variant not found");
     }
 
     let cart = await Cart.findOne({ user: userId }); // find cart by user id
@@ -49,7 +52,9 @@ const addItemToCart = async (req, res, next) => {
 
     // Check if the product already exists in the cart
     const existOrderItem = cart.items.find(
-      (item) => item.product.toString() === productId
+      (item) =>
+        item.product.toString() === productId &&
+        item.variant.toString() === variantId
     );
     //console.log("Exist Order Item:", existOrderItem);
 
@@ -60,6 +65,7 @@ const addItemToCart = async (req, res, next) => {
     } else {
       cart.items.push({
         product: productId,
+        variant: variantId,
         quantity: parsedQuantity,
         cost: parsedQuantity * product.price,
       });
@@ -84,14 +90,46 @@ const getCart = async (req, res, next) => {
     const userId = req.user._id;
 
     const cart = await Cart.findOne({ user: userId });
+
     if (!cart) {
       throw createError(404, "Cart not found");
+    }
+
+    const cartDetails = {
+      _id: cart._id,
+      user: cart.user,
+      totalPrice: cart.totalPrice,
+      items: [...cart.items],
+    };
+
+    for (let i = 0; i < cartDetails.items.length; i++) {
+      const item = cartDetails.items[i];
+      const product = await Product.findById(item.product);
+      const variant = product.variants.find(
+        (variant) => variant._id.toString() === item.variant.toString()
+      );
+
+      // Construct item details
+      const updatedItem = {
+        ...item._doc, // Spread the existing item properties
+        productDetails: {
+          name: product.name,
+          price: product.price,
+        },
+        variantDetails: {
+          color: variant?.color || "N/A",
+          size: variant?.size || "N/A",
+        },
+      };
+
+      // Replace the item in cartDetails.items
+      cartDetails.items[i] = updatedItem;
     }
 
     return successResponse(res, {
       statusCode: 200,
       message: "Cart fetched successfully",
-      payload: cart,
+      payload: cartDetails,
     });
   } catch (error) {
     next(error);
@@ -105,11 +143,6 @@ const updateCartItem = async (req, res, next) => {
 
     if (!itemId || !quantity) {
       throw createError(400, "Please provide item id and quantity");
-    }
-
-    // Ensure itemId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
-      throw createError(400, "Invalid item id");
     }
 
     // Ensure quantity is a number
