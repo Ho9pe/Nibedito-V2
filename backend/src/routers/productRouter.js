@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { uploadProductImage } = require("../middlewares/uploadfile");
+const { uploadProduct } = require("../config/cloudinary");
 
 const {
     createProduct,
@@ -20,7 +20,7 @@ productRouter.post(
     "/",
     isLoggedIn,
     isAdmin,
-    uploadProductImage.array("image", 10),
+    uploadProduct.array("image", 10),
     validateProduct,
     validateRequest,
     createProduct
@@ -36,7 +36,7 @@ productRouter.put(
     "/:slug",
     isLoggedIn,
     isAdmin,
-    uploadProductImage.array("image", 10),
+    uploadProduct.array("image", 10),
     validateProduct,
     validateRequest,
     updateProduct

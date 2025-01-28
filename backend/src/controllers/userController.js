@@ -106,16 +106,17 @@ const updateUserProfilePicture = async (req, res, next) => {
         if (!req.file) {
             throw createError(400, 'No file uploaded');
         }
-        const result = await cloudinary.uploader.upload(req.file.path);
-        const profilePictureUrl = result.secure_url;
+
         const updatedUser = await User.findByIdAndUpdate(
             userId, 
-            { profilePicture: profilePictureUrl }, 
+            { profilePicture: req.file.path }, 
             { new: true }
         );
+        
         if (!updatedUser) {
             throw createError(404, 'User not found');
         }
+        
         updatedUser.password = undefined;
         return successResponse(res, {
             statusCode: 200,

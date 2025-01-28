@@ -5,32 +5,29 @@ const { default: slugify } = require("slugify");
 const Category = require("../models/categoryModel");
 const { uploadImage, deleteImage } = require("../helper/cloudinaryHelper");
 const { validateImage } = require("../validators/image");
+const { getPublicIdFromUrl } = require("../helper/cloudinaryHelper");
 
 const createProduct = async (req, res, next) => {
     try {
         const { name, description, price, variants, shipping, category } = req.body;
-        const images = req.files;
+        const images = req.files; // Already uploaded by Cloudinary
 
-        // Validate images
         if (!images || images.length === 0) {
             throw createError(400, "At least one image is required");
         }
-        images.forEach(validateImage);
 
-        // Check product existence
         const productExist = await Product.exists({ name });
         if (productExist) {
             throw createError(409, "Product with this name already exists");
         }
 
-        // Check category existence
         const categoryExists = await Category.findById(category);
         if (!categoryExists) {
             throw createError(404, "Category not found");
         }
 
-        // Upload thumbnail
-        const thumbnailUrl = await uploadImage(images[0], "ecommerce/products/thumbnails");
+        // First image is thumbnail
+        const thumbnailUrl = images[0].path;
 
         // Process variants
         let parsedVariants = [];
@@ -41,8 +38,7 @@ const createProduct = async (req, res, next) => {
                 if (variant.imageIndices?.length > 0) {
                     for (const index of variant.imageIndices) {
                         if (images[index]) {
-                            const imageUrl = await uploadImage(images[index], "ecommerce/products/variants");
-                            variantImages.push(imageUrl);
+                            variantImages.push(images[index].path);
                         }
                     }
                 }
@@ -50,21 +46,16 @@ const createProduct = async (req, res, next) => {
             }
         }
 
-        for (const variant of parsedVariants) {
-            if (typeof variant.quantity !== 'number' || variant.quantity < 0) {
-                throw createError(400, "Invalid variant quantity");
-            }
-        }
-
+        // Create product
         const product = await Product.create({
             name,
             slug: slugify(name),
             description,
             price,
             thumbnailImage: thumbnailUrl,
-            category,
             variants: parsedVariants,
-            shipping
+            shipping,
+            category
         });
 
         return successResponse(res, {
@@ -209,11 +200,11 @@ const updateProduct = async (req, res, next) => {
 
         // Handle thumbnail update
         if (images?.length > 0) {
-            validateImage(images[0]);
             if (product.thumbnailImage) {
-                await deleteImage(product.thumbnailImage, "ecommerce/products/thumbnails");
+                const publicId = getPublicIdFromUrl(product.thumbnailImage);
+                await deleteImage(publicId);
             }
-            updates.thumbnailImage = await uploadImage(images[0], "ecommerce/products/thumbnails");
+            updates.thumbnailImage = images[0].path;
         }
 
         // Handle variants update

@@ -1,5 +1,5 @@
 const express = require("express");
-const { uploadCategoryImage } = require("../middlewares/uploadfile");
+const { uploadCategory } = require("../config/cloudinary");
 const {
     createCategory,
     getCategories,
@@ -18,7 +18,7 @@ categoryRouter.post(
     "/",
     isLoggedIn,
     isAdmin,
-    uploadCategoryImage.single("image"),
+    uploadCategory.single("image"),
     validateCategory,
     validateRequest,
     createCategory
@@ -33,7 +33,7 @@ categoryRouter.put(
     "/:slug",
     isLoggedIn,
     isAdmin,
-    uploadCategoryImage.single("image"),
+    uploadCategory.single("image"),
     validateCategory,
     validateRequest,
     updateCategory

@@ -38,6 +38,8 @@ Frontend application for Nibedito E-commerce platform, built with Next.js 14. Fe
 - User management interface
 - Ban/Unban functionality
 - Admin profile section
+- Category management
+
 
 
 ## In Progress Features

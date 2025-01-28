@@ -7,6 +7,7 @@ import './styles/navbar.css'
 import './styles/variables.css'
 import './styles/error.css'
 import './styles/dashboard.css'
+import './styles/category.css'
 import AdminRouteHandler from '@/components/admin/common/AdminRouteHandler';
 
 export const metadata = {

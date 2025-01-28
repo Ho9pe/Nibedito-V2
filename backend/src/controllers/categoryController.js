@@ -3,33 +3,24 @@ const { successResponse } = require("./responseController");
 const Category = require("../models/categoryModel");
 const Product = require("../models/productModel");
 const slugify = require("slugify");
-const { uploadImage, deleteImage } = require("../helper/cloudinaryHelper");
-const { validateImage } = require("../validators/image");
+const { getPublicIdFromUrl } = require("../helper/cloudinaryHelper");
+const { deleteImage: cloudinaryDeleteImage } = require("../config/cloudinary");
 
 const createCategory = async (req, res, next) => {
     try {
         const { name, description } = req.body;
         const image = req.file;
-
         const categoryExists = await Category.findOne({ name });
         if (categoryExists) {
             throw createError(409, "Category already exists");
         }
-
-        let imageUrl = '';
-        if (image) {
-            validateImage(image);
-            imageUrl = await uploadImage(image, "ecommerce/categories");
-        }
-
         const category = await Category.create({
             name,
             slug: slugify(name),
             description,
-            image: imageUrl,
+            image: image?.path || '',
             productCount: 0
         });
-
         return successResponse(res, {
             statusCode: 201,
             message: "Category created successfully",
@@ -42,7 +33,7 @@ const createCategory = async (req, res, next) => {
 
 const getCategories = async (req, res, next) => {
     try {
-        const categories = await Category.find({}).select("name slug").lean();
+        const categories = await Category.find({}).select("name slug description image productCount isActive").lean();
         return successResponse(res, {
             statusCode: 200,
             message: "Categories fetched successfully",
@@ -56,7 +47,7 @@ const getCategories = async (req, res, next) => {
 const getCategory = async (req, res, next) => {
     try {
         const { slug } = req.params;
-        const category = await Category.findOne({ slug }).select("name slug description image productCount").lean();
+        const category = await Category.findOne({ slug }).select("name slug description image productCount isActive").lean();
         
         if (!category) {
             throw createError(404, "Category not found");
@@ -95,11 +86,11 @@ const updateCategory = async (req, res, next) => {
         }
 
         if (image) {
-            validateImage(image);
             if (category.image) {
-                await deleteImage(category.image, "ecommerce/categories");
+                const publicId = getPublicIdFromUrl(category.image);
+                await cloudinaryDeleteImage(publicId);
             }
-            updates.image = await uploadImage(image, "ecommerce/categories");
+            updates.image = image.path;
         }
 
         const updatedCategory = await Category.findOneAndUpdate(
@@ -133,7 +124,8 @@ const deleteCategory = async (req, res, next) => {
         }
 
         if (category.image) {
-            await deleteImage(category.image, "ecommerce/categories");
+            const publicId = getPublicIdFromUrl(category.image);
+            await cloudinaryDeleteImage(publicId);
         }
 
         await Category.findOneAndDelete({ slug });

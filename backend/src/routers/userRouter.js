@@ -1,7 +1,7 @@
 const express = require('express');
 const userRouter = express.Router();
 
-const { upload } = require('../config/cloudinary');
+const { uploadProfile } = require('../config/cloudinary');
 const { updateUserValidator } = require('../validators/auth');
 const { validateRequest } = require('../middlewares/validateRequest');
 const { isLoggedIn, isOwner, isLoggedOut } = require('../middlewares/authMiddleware');
@@ -17,7 +17,7 @@ const {
 // Protected Routes (logged-in users)
 userRouter.get('/:id', isLoggedIn, isOwner, getUserById);
 userRouter.put('/update/:id', isLoggedIn, isOwner, updateUserValidator, validateRequest, updateUserInfo);
-userRouter.put('/profile/:id', isLoggedIn, isOwner, upload.single('profilePicture'), updateUserProfilePicture);
+userRouter.put('/profile/:id', isLoggedIn, isOwner, uploadProfile.single('profilePicture'), updateUserProfilePicture);
 
 // Address Routes
 userRouter.post('/:id/addresses', isLoggedIn, isOwner, addUserAddress);

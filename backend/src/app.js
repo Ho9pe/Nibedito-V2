@@ -9,6 +9,8 @@ const cors = require('cors');
 const userRouter = require('./routers/userRouter');
 const authRouter = require('./routers/authRouter');
 const adminRouter = require('./routers/adminRouter');
+const categoryRouter = require('./routers/categoryRouter');
+const productRouter = require('./routers/productRouter');
 const { errorResponse } = require('./controllers/responseController');
 
 
@@ -34,6 +36,8 @@ app.use(rateLimiter);
 app.use("/api/users", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/categories", categoryRouter);
+app.use("/api/products", productRouter);
 
 app.get('/test', (req, res) =>{
     res.status(200).send({

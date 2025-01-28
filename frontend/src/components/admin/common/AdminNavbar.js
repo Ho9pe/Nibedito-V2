@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useAdminAuth } from '@/contexts/AdminAuthContext';
-import { FiHome, FiUsers, FiPackage, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiUsers, FiPackage, FiSettings, FiLogOut, FiGrid } from 'react-icons/fi';
 
 export default function AdminNavbar() {
     const router = useRouter();
@@ -44,6 +44,9 @@ export default function AdminNavbar() {
                             </Link>
                             <Link href="/admin/users" className="admin-nav-link">
                                 <FiUsers /> Users
+                            </Link>
+                            <Link href="/admin/categories" className="admin-nav-link">
+                                <FiGrid /> Categories
                             </Link>
                             <Link href="/admin/products" className="admin-nav-link">
                                 <FiPackage /> Products
