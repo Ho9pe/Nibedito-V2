@@ -10,9 +10,9 @@ import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 export default function CategoryList({ categories, isLoading, onUpdateSuccess, onError }) {
     const [editingCategory, setEditingCategory] = useState(null);
-    const [deletingCategory, setDeletingCategory] = useState(null);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDeleteClick = (category) => {
         setCategoryToDelete(category);
@@ -23,19 +23,34 @@ export default function CategoryList({ categories, isLoading, onUpdateSuccess, o
         if (!categoryToDelete) return;
         
         try {
-            setDeletingCategory(categoryToDelete.slug);
+            setIsDeleting(true);
             const response = await categoryService.deleteCategory(categoryToDelete.slug);
-            if (response.statusCode === 200) {
-                await onUpdateSuccess(response.message || 'Category deleted successfully');
-            } else {
-                throw new Error(response.message || 'Failed to delete category');
-            }
-        } catch (error) {
-            onError(error.message);
-        } finally {
-            setDeletingCategory(null);
+            
+            // Update the local state immediately
+            const updatedCategories = categories.filter(cat => cat.slug !== categoryToDelete.slug);
+            
+            // Close dialog first
             setShowDeleteDialog(false);
             setCategoryToDelete(null);
+            setIsDeleting(false);
+            
+            // Then update the state and scroll
+            await onUpdateSuccess('Category deleted successfully', updatedCategories);
+            
+            // Use setTimeout to ensure state updates are processed
+            setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 100);
+            
+        } catch (error) {
+            onError(error.message);
+            setShowDeleteDialog(false);
+            setCategoryToDelete(null);
+            setIsDeleting(false);
+            
+            setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 100);
         }
     };
 
@@ -60,7 +75,7 @@ export default function CategoryList({ categories, isLoading, onUpdateSuccess, o
     return (
         <div className="category-list">
             {categories
-                .filter(category => category.slug !== deletingCategory)
+                .filter(category => category.slug !== categoryToDelete)
                 .map(category => (
                     <div key={category._id} className="category-item">
                         {editingCategory?.slug === category.slug ? (
@@ -140,15 +155,23 @@ export default function CategoryList({ categories, isLoading, onUpdateSuccess, o
             <ConfirmDialog 
                 isOpen={showDeleteDialog}
                 title="Delete Category"
-                message={categoryToDelete ? 
-                    `Are you sure you want to delete "${categoryToDelete.name}"? This action cannot be undone.` :
-                    'Are you sure you want to delete this category?'
+                message={
+                    <div className="delete-dialog-content">
+                        <p>Are you sure you want to delete <strong>{categoryToDelete?.name}</strong>?</p>
+                        <p className="delete-warning">This action cannot be undone. All associated data will be permanently removed.</p>
+                    </div>
                 }
+                confirmLabel={isDeleting ? "Deleting..." : "Delete Category"}
+                confirmButtonProps={{
+                    className: "btn btn-danger",
+                    disabled: isDeleting
+                }}
                 onConfirm={handleDeleteConfirm}
                 onCancel={() => {
                     setShowDeleteDialog(false);
                     setCategoryToDelete(null);
                 }}
+                actionType="delete"
             />
         </div>
     );

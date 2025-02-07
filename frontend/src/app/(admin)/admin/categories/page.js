@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 import CategoryList from '@/components/admin/categories/CategoryList';
 import CategoryForm from '@/components/admin/categories/CategoryForm';
 import CategoryStats from '@/components/admin/categories/CategoryStats';
-import Error from '@/components/common/Error';
 import { categoryService } from '@/services/categoryService';
 import CategoryTester from '@/components/admin/categories/CategoryTester';
+import { FiCheckCircle, FiX } from 'react-icons/fi';
+import Error from '@/components/common/Error';
 
 export default function CategoriesPage() {
     const router = useRouter();
@@ -54,33 +55,29 @@ export default function CategoriesPage() {
         }
     }, [status]);
 
-    const handleUpdateSuccess = async (message) => {
-        try {
-            // Set loading state
-            setIsLoadingCategories(true);
-            
-            // Fetch new data
-            const data = await categoryService.getAllCategories();
-            
-            // Update state in a single batch
-            setCategories(data.categories);
-            setStatus({
-                type: 'success',
-                message: message || 'Operation completed successfully'
-            });
-            
-            // Return a promise that resolves after state updates
-            return new Promise(resolve => {
-                setTimeout(() => {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    setIsLoadingCategories(false);
-                    resolve();
-                }, 100);
-            });
-        } catch (error) {
-            handleError(error.message);
-            setIsLoadingCategories(false);
+    const handleUpdateSuccess = async (message, updatedCategories = null) => {
+        if (updatedCategories) {
+            // If we have updated categories, use them directly
+            setCategories(updatedCategories);
+        } else {
+            // Otherwise fetch fresh data
+            try {
+                setIsLoadingCategories(true);
+                const data = await categoryService.getAllCategories();
+                setCategories(data.categories);
+            } catch (error) {
+                handleError(error.message);
+            } finally {
+                setIsLoadingCategories(false);
+            }
         }
+        
+        setStatus({
+            type: 'success',
+            message: message || 'Operation completed successfully'
+        });
+        
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleError = (message) => {
@@ -88,6 +85,7 @@ export default function CategoriesPage() {
             type: 'error',
             message: message || 'An error occurred'
         });
+        // Ensure error message is visible
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -114,7 +112,6 @@ export default function CategoriesPage() {
                 <Error 
                     type={status.type}
                     message={status.message}
-                    className="mb-4"
                     onClose={clearStatus}
                 />
             )}

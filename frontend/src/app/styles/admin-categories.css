@@ -361,3 +361,57 @@
 .test-result small {
     color: var(--text-secondary);
 }
+
+.delete-dialog-content {
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.delete-dialog-content p {
+    margin-bottom: 1rem;
+}
+
+.delete-warning {
+    color: var(--danger-color);
+    font-size: 0.938rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.delete-warning::before {
+    content: "⚠️";
+}
+
+/* Update ConfirmDialog styles */
+.confirm-dialog {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--border-radius-lg);
+    padding: 2rem;
+    width: 90%;
+    max-width: 500px;
+}
+
+.confirm-dialog-header {
+    margin-bottom: 1.5rem;
+}
+
+.confirm-dialog-header h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.confirm-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.confirm-dialog-overlay {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}

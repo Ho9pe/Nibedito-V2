@@ -1,60 +1,35 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { FiCheckCircle, FiAlertCircle, FiX } from 'react-icons/fi';
 
 export default function Error({ 
-  type = 'error',
-  message, 
-  action,
-  className = '',
-  dismissible = true
+    type = 'error',
+    message, 
+    onClose,
+    className = ''
 }) {
-  const [isVisible, setIsVisible] = useState(true);
+    if (!message) return null;
 
-  if (!isVisible) return null;
-
-  const getIcon = () => {
-    switch (type) {
-      case 'error':
-        return '×';
-      case 'warning':
-        return '!';
-      case 'info':
-        return 'i';
-      case 'success':
-        return '✓';
-      default:
-        return '!';
-    }
-  };
-
-  return (
-    <div className={`error-wrapper ${type} ${className}`}>
-      <div className="error-icon-wrapper">
-        <span className="error-icon">{getIcon()}</span>
-      </div>
-      <div className="error-content">
-        <p className="error-text">{message}</p>
-        {action && (
-          <div className="error-action">
-            {typeof action === 'string' ? (
-              <Link href={action}>Try Again</Link>
-            ) : (
-              action
+    return (
+        <div className={`error-message ${type} ${className}`}>
+            <div className="error-content">
+                <span className="error-icon">
+                    {type === 'success' ? 
+                        <FiCheckCircle size={20} /> : 
+                        <FiAlertCircle size={20} />
+                    }
+                </span>
+                <span>{message}</span>
+            </div>
+            {onClose && (
+                <button 
+                    onClick={onClose}
+                    className="close-button"
+                    aria-label="Close message"
+                >
+                    <FiX size={18} />
+                </button>
             )}
-          </div>
-        )}
-      </div>
-      {dismissible && (
-        <button 
-          className="error-dismiss" 
-          onClick={() => setIsVisible(false)}
-          aria-label="Dismiss"
-        >
-          ×
-        </button>
-      )}
-    </div>
-  );
+        </div>
+    );
 }

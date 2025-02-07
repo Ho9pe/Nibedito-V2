@@ -1,30 +1,38 @@
 'use client';
 
-import { FiAlertTriangle } from 'react-icons/fi';
-
-export default function ConfirmDialog({ isOpen, title, message, onConfirm, onCancel }) {
+export default function ConfirmDialog({ 
+    isOpen, 
+    title, 
+    message, 
+    onConfirm, 
+    onCancel,
+    confirmLabel = "Confirm",
+    cancelLabel = "Cancel",
+    confirmButtonProps = {}
+}) {
     if (!isOpen) return null;
 
     return (
-        <div className="dialog-overlay" onClick={onCancel}>
-            <div className="dialog-content" onClick={e => e.stopPropagation()}>
-                <div className="dialog-header">
-                    <FiAlertTriangle className="dialog-icon" />
-                    <h3 className="dialog-title">{title}</h3>
+        <div className="confirm-dialog-overlay" onClick={onCancel}>
+            <div className="confirm-dialog" onClick={e => e.stopPropagation()}>
+                <div className="confirm-dialog-header">
+                    <h3>{title}</h3>
                 </div>
-                <p className="dialog-message">{message}</p>
-                <div className="dialog-actions">
+                <div className="confirm-dialog-content">
+                    {message}
+                </div>
+                <div className="confirm-dialog-actions">
                     <button 
                         className="btn btn-secondary" 
                         onClick={onCancel}
                     >
-                        Cancel
+                        {cancelLabel}
                     </button>
                     <button 
-                        className="btn btn-danger" 
                         onClick={onConfirm}
+                        {...confirmButtonProps}
                     >
-                        Delete
+                        {confirmLabel}
                     </button>
                 </div>
             </div>
