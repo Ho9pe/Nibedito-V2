@@ -8,6 +8,7 @@ import CategoryForm from '@/components/admin/categories/CategoryForm';
 import CategoryStats from '@/components/admin/categories/CategoryStats';
 import Error from '@/components/common/Error';
 import { categoryService } from '@/services/categoryService';
+import CategoryTester from '@/components/admin/categories/CategoryTester';
 
 export default function CategoriesPage() {
     const router = useRouter();
@@ -17,13 +18,17 @@ export default function CategoriesPage() {
     const [categories, setCategories] = useState([]);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
+    useEffect(() => {
+        if (!isLoading && !admin) {
+            router.push('/admin/login');
+        }
+    }, [admin, isLoading, router]);
+
     const fetchCategories = async () => {
         try {
             setIsLoadingCategories(true);
             const data = await categoryService.getAllCategories();
-            if (data && data.categories) {
-                setCategories(data.categories);
-            }
+            setCategories(data.categories);
         } catch (error) {
             setStatus({
                 type: 'error',
@@ -35,15 +40,59 @@ export default function CategoriesPage() {
     };
 
     useEffect(() => {
-        if (!isLoading && !admin) {
-            router.push('/admin-login');
-        } else if (admin) {
-            fetchCategories();
+        fetchCategories();
+    }, []);
+
+    const clearStatus = () => {
+        setStatus({ type: '', message: '' });
+    };
+
+    useEffect(() => {
+        if (status.message) {
+            const timer = setTimeout(clearStatus, 5000); // Clear message after 5 seconds
+            return () => clearTimeout(timer);
         }
-    }, [isLoading, admin, router]);
+    }, [status]);
+
+    const handleUpdateSuccess = async (message) => {
+        try {
+            // Set loading state
+            setIsLoadingCategories(true);
+            
+            // Fetch new data
+            const data = await categoryService.getAllCategories();
+            
+            // Update state in a single batch
+            setCategories(data.categories);
+            setStatus({
+                type: 'success',
+                message: message || 'Operation completed successfully'
+            });
+            
+            // Return a promise that resolves after state updates
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    setIsLoadingCategories(false);
+                    resolve();
+                }, 100);
+            });
+        } catch (error) {
+            handleError(error.message);
+            setIsLoadingCategories(false);
+        }
+    };
+
+    const handleError = (message) => {
+        setStatus({
+            type: 'error',
+            message: message || 'An error occurred'
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     if (isLoading || !admin) {
-        return <div className="admin-loading">Loading...</div>;
+        return null;
     }
 
     return (
@@ -52,61 +101,46 @@ export default function CategoriesPage() {
                 <h1>Category Management</h1>
                 <button 
                     className="btn btn-primary"
-                    onClick={() => setIsAddMode(!isAddMode)}
+                    onClick={() => {
+                        setIsAddMode(!isAddMode);
+                        clearStatus();
+                    }}
                 >
                     {isAddMode ? 'Cancel' : 'Add New Category'}
                 </button>
             </div>
-
-            {!isAddMode && !isLoadingCategories && (
-                <CategoryStats categories={categories} />
-            )}
 
             {status.message && (
                 <Error 
                     type={status.type}
                     message={status.message}
                     className="mb-4"
+                    onClose={clearStatus}
                 />
+            )}
+
+            {!isAddMode && !isLoadingCategories && (
+                <CategoryStats categories={categories} />
             )}
 
             {isAddMode && (
                 <CategoryForm 
                     onSuccess={(category) => {
                         setIsAddMode(false);
-                        fetchCategories();
-                        setStatus({
-                            type: 'success',
-                            message: 'Category created successfully'
-                        });
+                        handleUpdateSuccess('Category created successfully');
                     }}
-                    onError={(message) => {
-                        setStatus({
-                            type: 'error',
-                            message: message || 'Failed to create category'
-                        });
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
+                    onError={handleError}
                 />
             )}
 
             <CategoryList 
                 categories={categories}
                 isLoading={isLoadingCategories}
-                onUpdateSuccess={(message) => {
-                    fetchCategories();
-                    setStatus({
-                        type: 'success',
-                        message: message || 'Category updated successfully'
-                    });
-                }}
-                onError={(message) => {
-                    setStatus({
-                        type: 'error',
-                        message
-                    });
-                }}
+                onUpdateSuccess={handleUpdateSuccess}
+                onError={handleError}
             />
+
+            <CategoryTester />
         </div>
     );
 } 

@@ -18,7 +18,6 @@ const productRouter = express.Router();
 // /api/products common path
 productRouter.post(
     "/",
-    isLoggedIn,
     isAdmin,
     uploadProduct.array("image", 10),
     validateProduct,

@@ -100,6 +100,14 @@ const getProducts = async (req, res, next) => {
         // Get total count of products
         const count = await Product.find(filter).countDocuments();
 
+        // Get total stats
+        const allProducts = await Product.find(filter).lean();
+        const totalStats = {
+            totalValue: allProducts.reduce((sum, product) => sum + product.price, 0),
+            totalVariants: allProducts.reduce((sum, product) => sum + (product.variants?.length || 0), 0),
+            activeCategories: new Set(allProducts.map(product => product.category)).size
+        };
+
         return successResponse(res, {
             statusCode: 200,
             message: "Products were returned successfully!",
@@ -112,6 +120,7 @@ const getProducts = async (req, res, next) => {
                     previousPage: page > 1 ? page - 1 : null,
                     nextPage: page + 1 <= Math.ceil(count / limit) ? page + 1 : null,
                 },
+                ...totalStats
             },
         });
     } catch (error) {
@@ -153,13 +162,13 @@ const deleteProduct = async (req, res, next) => {
 
         // Delete thumbnail
         if (product.thumbnailImage) {
-            await deleteImage(product.thumbnailImage, "ecommerce/products/thumbnails");
+            await deleteImage(product.thumbnailImage);
         }
 
         // Delete variant images
         for (const variant of product.variants || []) {
             for (const image of variant.images || []) {
-                await deleteImage(image, "ecommerce/products/variants");
+                await deleteImage(image);
             }
         }
 
@@ -214,7 +223,7 @@ const updateProduct = async (req, res, next) => {
             // Delete old variant images
             for (const oldVariant of product.variants) {
                 for (const image of oldVariant.images || []) {
-                    await deleteImage(image, "ecommerce/products/variants");
+                    await deleteImage(image);
                 }
             }
 

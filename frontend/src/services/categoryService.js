@@ -11,7 +11,7 @@ export const categoryService = {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            return data.payload;
+            return data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Failed to create category');
         }
@@ -22,9 +22,10 @@ export const categoryService = {
             const { data } = await axios.put(`/categories/${slug}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
             });
-            return data.payload;
+            return data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Failed to update category');
         }
@@ -50,8 +51,12 @@ export const categoryService = {
 
     deleteCategory: async (slug) => {
         try {
-            const { data } = await axios.delete(`/categories/${slug}`);
-            return data.payload;
+            const { data } = await axios.delete(`/categories/${slug}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+            });
+            return data;
         } catch (error) {
             throw new Error(error.response?.data?.message || 'Failed to delete category');
         }

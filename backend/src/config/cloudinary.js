@@ -49,7 +49,7 @@ module.exports = {
     cloudinary,
     uploadProduct: createUploader('products'),
     uploadCategory: createUploader('categories'),
-    uploadProfile: createUploader('profiles', 2), // 2MB limit for profiles
+    uploadProfile: createUploader('profiles', 5), // 5MB limit for profiles
     deleteImage: async (publicId) => {
         try {
             const result = await cloudinary.uploader.destroy(publicId);

@@ -9,9 +9,9 @@ export default function CategoryForm({ category, onSuccess, onError, onCancel })
     const [formData, setFormData] = useState({
         name: category?.name || '',
         description: category?.description || '',
-        image: null
     });
-    const [preview, setPreview] = useState(category?.image || null);
+    const [image, setImage] = useState(null);
+    const [previewImage, setPreviewImage] = useState(category?.image || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
@@ -20,16 +20,11 @@ export default function CategoryForm({ category, onSuccess, onError, onCancel })
     };
 
     const handleImageChange = (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (file.size > 2 * 1024 * 1024) {
-            onError('Image size should be less than 2MB');
-            return;
+        const file = e.target.files[0];
+        if (file) {
+            setImage(file);
+            setPreviewImage(URL.createObjectURL(file));
         }
-
-        setFormData(prev => ({ ...prev, image: file }));
-        setPreview(URL.createObjectURL(file));
     };
 
     const handleSubmit = async (e) => {
@@ -37,23 +32,11 @@ export default function CategoryForm({ category, onSuccess, onError, onCancel })
         setIsSubmitting(true);
 
         try {
-            if (!formData.name.trim()) {
-                throw new Error('Category name is required');
-            }
-
-            if (!formData.description.trim()) {
-                throw new Error('Category description is required');
-            }
-
-            if (!category && !formData.image) {
-                throw new Error('Category image is required');
-            }
-
             const formDataToSend = new FormData();
-            formDataToSend.append('name', formData.name.trim());
-            formDataToSend.append('description', formData.description.trim());
-            if (formData.image) {
-                formDataToSend.append('image', formData.image);
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('description', formData.description);
+            if (image) {
+                formDataToSend.append('image', image);
             }
 
             let response;
@@ -63,18 +46,13 @@ export default function CategoryForm({ category, onSuccess, onError, onCancel })
                 response = await categoryService.createCategory(formDataToSend);
             }
 
-            if (response && response.category) {
-                onSuccess(response.category);
-                // Cleanup preview URL
-                if (preview) {
-                    URL.revokeObjectURL(preview);
-                }
+            if (response.payload?.category) {
+                onSuccess(response.payload.category);
             } else {
                 throw new Error('Invalid response format');
             }
         } catch (error) {
-            console.error('Category submission error:', error);
-            onError(error.message || 'Failed to save category');
+            onError(error.message);
         } finally {
             setIsSubmitting(false);
         }
@@ -112,10 +90,10 @@ export default function CategoryForm({ category, onSuccess, onError, onCancel })
             <div className="form-group">
                 <label htmlFor="image">Category Image</label>
                 <label htmlFor="image" className="image-upload-container">
-                    {preview ? (
+                    {previewImage && (
                         <div className="image-preview">
                             <Image
-                                src={preview}
+                                src={previewImage}
                                 alt="Preview"
                                 width={200}
                                 height={200}
@@ -126,27 +104,31 @@ export default function CategoryForm({ category, onSuccess, onError, onCancel })
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    setPreview(null);
-                                    setFormData(prev => ({ ...prev, image: null }));
+                                    setPreviewImage(null);
+                                    setImage(null);
                                 }}
                                 className="remove-image"
                             >
                                 <FiX />
                             </button>
                         </div>
-                    ) : (
-                        <div className="upload-placeholder">
-                            <input
-                                type="file"
-                                id="image"
-                                onChange={handleImageChange}
-                                accept="image/*"
-                                className="hidden"
-                            />
-                            <FiUpload className="upload-icon" />
-                            <span>Click to upload image</span>
-                        </div>
                     )}
+                </label>
+            </div>
+
+            <div className="form-group">
+                <label htmlFor="image" className="image-upload-container">
+                    <div className="upload-placeholder">
+                        <input
+                            type="file"
+                            id="image"
+                            onChange={handleImageChange}
+                            accept="image/*"
+                            className="hidden"
+                        />
+                        <FiUpload className="upload-icon" />
+                        <span>Click to upload image</span>
+                    </div>
                 </label>
             </div>
 

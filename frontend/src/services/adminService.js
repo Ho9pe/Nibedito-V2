@@ -3,10 +3,15 @@ import axios from '@/utils/axios';
 export const adminService = {
     async login(credentials) {
         try {
-            const { data } = await axios.post('/admin/login', credentials);
+            const response = await axios.post('/admin/login', credentials, {
+                withCredentials: true
+            });
+            const { data } = response;
+            
             if (data.success && data.payload?.adminInfo) {
+                // Only store admin info in localStorage
                 localStorage.setItem('admin', JSON.stringify(data.payload.adminInfo));
-                return { admin: data.payload.adminInfo };
+                return data.payload.adminInfo;
             }
             throw new Error(data.message || 'Login failed');
         } catch (error) {
@@ -19,7 +24,9 @@ export const adminService = {
 
     async logout() {
         try {
-            await axios.post('/admin/logout');
+            await axios.post('/admin/logout', {}, {
+                withCredentials: true
+            });
         } finally {
             localStorage.removeItem('admin');
         }

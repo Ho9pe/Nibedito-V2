@@ -8,6 +8,8 @@ import './styles/variables.css'
 import './styles/error.css'
 import './styles/dashboard.css'
 import './styles/category.css'
+import './styles/confirm-dialog.css'
+
 import AdminRouteHandler from '@/components/admin/common/AdminRouteHandler';
 
 export const metadata = {

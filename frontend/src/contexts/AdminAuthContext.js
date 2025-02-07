@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { adminService } from '@/services/adminService';
+import { API_URL } from '@/config/constants';
 
 const AdminAuthContext = createContext();
 
@@ -27,12 +28,8 @@ export function AdminAuthProvider({ children }) {
 
     const loginAdmin = async (credentials) => {
         try {
-            const response = await adminService.login(credentials);
-            if (response?.admin) {
-                setAdmin(response.admin);
-                return response;
-            }
-            throw new Error('Invalid response from server');
+            const adminInfo = await adminService.login(credentials);
+            setAdmin(adminInfo);
         } catch (error) {
             throw error;
         }
@@ -44,7 +41,8 @@ export function AdminAuthProvider({ children }) {
             setAdmin(null);
         } catch (error) {
             console.error('Logout error:', error);
-            throw error;
+            // Still clear local state even if API call fails
+            setAdmin(null);
         }
     };
 

@@ -37,8 +37,9 @@ const handleAdminLogin = async (req, res, next) => {
 
         const accessToken = createJSONWebToken(adminInfo, jwtAccessKey, '1h');
 
+        // Send token in both cookie and response
         res.cookie('accessToken', accessToken, {
-            maxAge: 60 * 60 * 1000, // 1 hour
+            maxAge: 60 * 60 * 1000,
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict'
@@ -47,7 +48,10 @@ const handleAdminLogin = async (req, res, next) => {
         return successResponse(res, {
             statusCode: 200,
             message: 'Admin logged in successfully',
-            payload: { adminInfo }
+            payload: { 
+                adminInfo,
+                accessToken // Include token in response
+            }
         });
     } catch (error) {
         next(error);

@@ -22,7 +22,7 @@ export default function ProductsPage() {
             setIsLoading(true);
             const response = await productService.getAllProducts({
                 page,
-                limit: 12,
+                limit: 9,
                 search: searchParams.get('search') || '',
                 category: searchParams.get('category') || ''
             });

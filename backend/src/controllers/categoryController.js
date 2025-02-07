@@ -4,7 +4,7 @@ const Category = require("../models/categoryModel");
 const Product = require("../models/productModel");
 const slugify = require("slugify");
 const { getPublicIdFromUrl } = require("../helper/cloudinaryHelper");
-const { deleteImage: cloudinaryDeleteImage } = require("../config/cloudinary");
+const { deleteImage } = require("../helper/cloudinaryHelper");
 
 const createCategory = async (req, res, next) => {
     try {
@@ -86,11 +86,15 @@ const updateCategory = async (req, res, next) => {
         }
 
         if (image) {
-            if (category.image) {
-                const publicId = getPublicIdFromUrl(category.image);
-                await cloudinaryDeleteImage(publicId);
+            try {
+                if (category.image) {
+                    await deleteImage(category.image);
+                }
+                updates.image = image.path;
+            } catch (error) {
+                console.error('Error handling image update:', error);
+                // Continue with update even if image deletion fails
             }
-            updates.image = image.path;
         }
 
         const updatedCategory = await Category.findOneAndUpdate(
@@ -124,8 +128,12 @@ const deleteCategory = async (req, res, next) => {
         }
 
         if (category.image) {
-            const publicId = getPublicIdFromUrl(category.image);
-            await cloudinaryDeleteImage(publicId);
+            try {
+                await deleteImage(category.image);
+                console.log('Category image deleted from Cloudinary:', category.image);
+            } catch (error) {
+                console.error('Error deleting image:', error);
+            }
         }
 
         await Category.findOneAndDelete({ slug });
