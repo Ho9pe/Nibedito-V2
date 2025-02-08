@@ -101,16 +101,25 @@ productSchema.pre('save', function(next) {
 productSchema.pre('findOneAndUpdate', async function(next) {
     const update = this.getUpdate();
     if (update.price) {
-        // Find all cart items with this product and update costs
-        const Cart = model('Cart');
-        const carts = await Cart.find({ 'items.product': this._conditions._id });
-        for (const cart of carts) {
-            cart.items.forEach(item => {
-                if (item.product.toString() === this._conditions._id.toString()) {
-                    item.cost = item.quantity * update.price;
-                }
-            });
-            await cart.save();
+        try {
+            // Defer loading of Cart model until needed
+            const Cart = mongoose.models.Cart || mongoose.model('Cart');
+            const carts = await Cart.find({ 'items.product': this._conditions._id });
+            for (const cart of carts) {
+                cart.items.forEach(item => {
+                    if (item.product.toString() === this._conditions._id.toString()) {
+                        item.cost = item.quantity * update.price;
+                    }
+                });
+                await cart.save();
+            }
+        } catch (error) {
+            // If Cart model doesn't exist yet, skip the update
+            if (error.name === 'MissingSchemaError') {
+                console.log('Cart model not yet registered, skipping cart updates');
+            } else {
+                throw error;
+            }
         }
     }
     next();

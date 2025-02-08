@@ -5,7 +5,6 @@ const { default: slugify } = require("slugify");
 const Category = require("../models/categoryModel");
 const { uploadImage, deleteImage } = require("../helper/cloudinaryHelper");
 const { validateImage } = require("../validators/image");
-const { getPublicIdFromUrl } = require("../helper/cloudinaryHelper");
 
 const createProduct = async (req, res, next) => {
     try {
@@ -189,25 +188,28 @@ const deleteProduct = async (req, res, next) => {
         // Delete thumbnail
         if (product.thumbnailImage) {
             try {
-                const publicId = getPublicIdFromUrl(product.thumbnailImage);
+                const publicId = product.thumbnailImage;
                 await deleteImage(publicId);
                 console.log('Product thumbnail deleted from Cloudinary:', product.thumbnailImage);
             } catch (error) {
                 console.error('Error deleting thumbnail:', error);
-                // Continue with deletion even if thumbnail deletion fails
             }
         }
 
         // Delete variant images
-        for (const variant of product.variants || []) {
-            for (const image of variant.images || []) {
-                try {
-                    const publicId = getPublicIdFromUrl(image);
-                    await deleteImage(publicId);
-                    console.log('Variant image deleted from Cloudinary:', image);
-                } catch (error) {
-                    console.error('Error deleting variant image:', error);
-                    // Continue with deletion even if variant image deletion fails
+        if (product.variants && product.variants.length > 0) {
+            for (const variant of product.variants) {
+                if (variant.images && variant.images.length > 0) {
+                    for (const imageUrl of variant.images) {
+                        try {
+                            const publicId = imageUrl;
+                            await deleteImage(publicId);
+                            console.log('Variant image deleted from Cloudinary:', imageUrl);
+                        } catch (error) {
+                            console.error('Error deleting variant image:', error);
+                        }
+
+                    }
                 }
             }
         }
@@ -235,15 +237,25 @@ const updateProduct = async (req, res, next) => {
             throw createError(404, "Product not found!");
         }
 
-        let updates = { description, price, shipping };
+        // Initialize updates with existing product data
+        let updates = {
+            name: name || product.name,
+            description: description || product.description,
+            price: price || product.price,
+            category: category || product.category,
+            shipping: shipping !== undefined ? shipping : product.shipping,
+            thumbnailImage: product.thumbnailImage // Keep existing thumbnail if not updating
+        };
 
-        // Handle name update
+        // Handle name update and slug generation
         if (name && name !== product.name) {
-            const productExists = await Product.exists({ name });
+            const productExists = await Product.exists({ 
+                name, 
+                _id: { $ne: product._id } 
+            });
             if (productExists) {
                 throw createError(409, "Product with this name already exists");
             }
-            updates.name = name;
             updates.slug = slugify(name);
         }
 
@@ -251,74 +263,92 @@ const updateProduct = async (req, res, next) => {
         if (files?.thumbnail?.[0]) {
             // Delete old thumbnail
             if (product.thumbnailImage) {
-                const publicId = getPublicIdFromUrl(product.thumbnailImage);
+                const publicId = product.thumbnailImage;
                 await deleteImage(publicId);
             }
             // Upload new thumbnail
             const thumbnailImage = files.thumbnail[0];
             validateImage(thumbnailImage);
+
             updates.thumbnailImage = await uploadImage(
                 thumbnailImage, 
                 'product-thumbnail',
-                slugify(name).toLowerCase()
+                slugify(updates.name).toLowerCase()
             );
         }
-
 
         // Handle variants update
         if (variants) {
             const parsedVariants = JSON.parse(variants);
             
-            // Delete old variant images
-            for (const oldVariant of product.variants) {
-                for (const image of oldVariant.images || []) {
-                    const publicId = getPublicIdFromUrl(image);
-                    await deleteImage(publicId);
-                }
-            }
-
-            // Process new variants
+            // If there are new variant images
             if (files?.variantImages) {
-                for (const variant of parsedVariants) {
-                    const variantImages = [];
-                    if (variant.imageIndices?.length > 0) {
-                        if (variant.imageIndices.length > 5) {
-                            throw createError(400, "Maximum 5 images allowed per variant");
+                let processedImageCount = 0;
+                
+                for (let i = 0; i < parsedVariants.length; i++) {
+                    const variant = parsedVariants[i];
+                    
+                    // Skip variants without updates
+                    if (!variant.removedImageIndices && !variant.newImageCount) {
+                        variant.images = product.variants[i]?.images || [];
+                        continue;
+                    }
+
+                    let variantImages = [...(product.variants[i]?.images || [])];
+
+                    // Remove specified images
+                    if (variant.removedImageIndices?.length > 0) {
+                        // Delete removed images from storage
+                        for (const index of variant.removedImageIndices) {
+                            if (variantImages[index]) {
+                                const publicId = getPublicIdFromUrl(variantImages[index]);
+                                await deleteImage(publicId);
+                            }
                         }
                         
-                        for (let i = 0; i < variant.imageIndices.length; i++) {
-                            const image = files.variantImages[i];
+                        // Filter out removed images
+                        variantImages = variantImages.filter((_, idx) => 
+                            !variant.removedImageIndices.includes(idx)
+                        );
+                    }
+
+                    // Add new images
+                    if (variant.newImageCount > 0) {
+                        for (let j = 0; j < variant.newImageCount; j++) {
+                            const image = files.variantImages[processedImageCount];
                             if (image) {
                                 validateImage(image);
                                 const imageUrl = await uploadImage(
                                     image,
                                     'product-variant',
-                                    `${slugify(name).toLowerCase()}-variant${index}-${i}`
+                                    `${slugify(updates.name || name).toLowerCase()}-variant${i}-${j}`
                                 );
                                 variantImages.push(imageUrl);
+                                processedImageCount++;
                             }
                         }
                     }
+
                     variant.images = variantImages;
+                    delete variant.removedImageIndices;
+                    delete variant.newImageCount;
                 }
+            } else {
+                // Keep existing variant images if no new images
+                parsedVariants.forEach((variant, index) => {
+                    if (!variant.images) {
+                        variant.images = product.variants[index]?.images || [];
+                    }
+                });
             }
-
+            
             updates.variants = parsedVariants;
-        }
-
-        // Handle category update
-        if (category && category !== product.category.toString()) {
-            const categoryExists = await Category.findById(category);
-            if (!categoryExists) {
-                throw createError(404, "Category not found");
-            }
-            updates.category = category;
         }
 
         const updatedProduct = await Product.findOneAndUpdate(
             { slug },
             updates,
-            { new: true }
+            { new: true, runValidators: true }
         ).populate('category');
 
         return successResponse(res, {

@@ -21,7 +21,7 @@ export default function CategoriesPage() {
 
     useEffect(() => {
         if (!isLoading && !admin) {
-            router.push('/admin/login');
+            router.push('/admin-login');
         }
     }, [admin, isLoading, router]);
 

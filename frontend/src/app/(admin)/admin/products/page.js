@@ -8,7 +8,6 @@ import ProductForm from '@/components/admin/products/ProductForm';
 import ProductStats from '@/components/admin/products/ProductStats';
 import Error from '@/components/common/Error';
 import { productService } from '@/services/productService';
-import ProductTester from '@/components/admin/products/ProductTester';
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -72,6 +71,10 @@ export default function ProductsPage() {
         return <div className="admin-loading">Loading...</div>;
     }
 
+    const handleProductClick = (slug) => {
+        router.push(`/admin/products/${slug}`);
+    };
+
     return (
         <div className="admin-products">
             <div className="admin-header">
@@ -87,8 +90,6 @@ export default function ProductsPage() {
             {!isAddMode && !isLoadingProducts && (
                 <ProductStats products={products} totalStats={totalStats} />
             )}
-
-            {!isAddMode && <ProductTester />}
 
             {status.message && (
                 <Error 
@@ -121,21 +122,9 @@ export default function ProductsPage() {
                     isLoading={isLoadingProducts}
                     pagination={pagination}
                     onPageChange={fetchProducts}
-                    onUpdateSuccess={() => {
-                        fetchProducts();
-                        setStatus({
-                            type: 'success',
-                            message: 'Product updated successfully'
-                        });
-                    }}
-                    onError={(message) => {
-                        setStatus({
-                            type: 'error',
-                            message
-                        });
-                    }}
+                    onProductClick={handleProductClick}
                 />
             )}
         </div>
     );
-} 
+}

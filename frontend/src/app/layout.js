@@ -1,5 +1,6 @@
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AdminAuthProvider } from '@/contexts/AdminAuthContext';
+import { CartProvider } from '@/contexts/CartContext';
 import './globals.css';
 import './styles/home.css';
 import './styles/auth.css';
@@ -22,11 +23,13 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AuthProvider>
-          <AdminAuthProvider>
-            <AdminRouteHandler>
-              {children}
-            </AdminRouteHandler>
-          </AdminAuthProvider>
+          <CartProvider>
+            <AdminAuthProvider>
+              <AdminRouteHandler>
+                {children}
+              </AdminRouteHandler>
+            </AdminAuthProvider>
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>
