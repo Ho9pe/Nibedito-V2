@@ -17,7 +17,12 @@ const createCategory = async (req, res, next) => {
 
         let imageUrl = '';
         if (image) {
-            imageUrl = await uploadImage(image, 'category', slugify(name).toLowerCase());
+            const timestamp = Date.now();
+            imageUrl = await uploadImage(
+                image, 
+                'category', 
+                `${slugify(name).toLowerCase()}-${timestamp}`
+            );
         }
 
         const category = await Category.create({
@@ -27,6 +32,7 @@ const createCategory = async (req, res, next) => {
             image: imageUrl,
             productCount: 0
         });
+
         return successResponse(res, {
             statusCode: 201,
             message: "Category created successfully",
@@ -80,8 +86,9 @@ const updateCategory = async (req, res, next) => {
             throw createError(404, "Category not found");
         }
 
-        const updates = { description };
+        let updates = { description };
 
+        // Handle name update
         if (name && name !== category.name) {
             const categoryExists = await Category.findOne({ name });
             if (categoryExists) {
@@ -91,16 +98,26 @@ const updateCategory = async (req, res, next) => {
             updates.slug = slugify(name);
         }
 
+        // Handle image update
         if (image) {
-            try {
-                if (category.image) {
+            // Delete old image if exists
+            if (category.image) {
+                try {
                     await deleteImage(category.image);
+                } catch (error) {
+                    console.error('Error deleting old image:', error);
+                    // Continue with upload even if delete fails
                 }
-                updates.image = await uploadImage(image, 'category', slugify(name).toLowerCase());
-            } catch (error) {
-                console.error('Error handling image update:', error);
-                // Continue with update even if image deletion fails
             }
+
+            // Upload new image
+            const timestamp = Date.now();
+            const imageUrl = await uploadImage(
+                image,
+                'category',
+                `${slugify(name || category.name).toLowerCase()}-${timestamp}`
+            );
+            updates.image = imageUrl;
         }
 
         const updatedCategory = await Category.findOneAndUpdate(

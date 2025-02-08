@@ -65,21 +65,28 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
     };
 
     const handleVariantImageChange = (variantIndex, e) => {
-        const files = Array.from(e.target.files);
-        if (files.length > 5) {
+        const newFiles = Array.from(e.target.files);
+        const existingFiles = variantImages[variantIndex] || [];
+        
+        // Check if total images would exceed 5
+        if (existingFiles.length + newFiles.length > 5) {
             handleError('Maximum 5 images allowed per variant');
             return;
         }
 
+        // Combine existing and new files
+        const updatedFiles = [...existingFiles, ...newFiles];
         setVariantImages(prev => ({
             ...prev,
-            [variantIndex]: files
+            [variantIndex]: updatedFiles
         }));
 
-        const previews = files.map(file => URL.createObjectURL(file));
+        // Generate previews for all images
+        const existingPreviews = variantPreviews[variantIndex] || [];
+        const newPreviews = newFiles.map(file => URL.createObjectURL(file));
         setVariantPreviews(prev => ({
             ...prev,
-            [variantIndex]: previews
+            [variantIndex]: [...existingPreviews, ...newPreviews]
         }));
     };
 
@@ -140,11 +147,18 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
             formDataToSend.append('thumbnail', thumbnailBlob, `product-thumbnail.${thumbnailExtension}`);
 
             // Process variants and their images
-            const variantsWithImageInfo = formData.variants.map((variant, index) => {
-                const variantImagesInfo = variantImages[index]?.map((_, imgIndex) => imgIndex) || [];
+            let totalImageIndex = 0;
+            const variantsWithImageInfo = formData.variants.map((variant, variantIndex) => {
+                const currentVariantImages = variantImages[variantIndex] || [];
+                const startIndex = Object.entries(variantImages)
+                    .slice(0, variantIndex)
+                    .reduce((acc, [_, images]) => acc + images.length, 0);
+                
+                const imageIndices = currentVariantImages.map((_, index) => startIndex + index);
+                
                 return {
                     ...variant,
-                    imageIndices: variantImagesInfo
+                    imageIndices
                 };
             });
 
@@ -152,14 +166,15 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
 
             // Append variant images with specific names
             Object.entries(variantImages).forEach(([variantIndex, images]) => {
-                images.forEach((image, imageIndex) => {
+                images.forEach((image) => {
                     const extension = image.name.split('.').pop();
                     const blob = new Blob([image], { type: image.type });
                     formDataToSend.append(
                         'variantImages',
                         blob,
-                        `product-variant-${variantIndex}-${imageIndex}.${extension}`
+                        `product-variant-${variantIndex}-${totalImageIndex}.${extension}`
                     );
+                    totalImageIndex++;
                 });
             });
 
@@ -371,13 +386,14 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                         </div>
 
                         <div className="variant-images">
-                            <h4>Variant Images (Max 5)</h4>
+                            <h4>Variant Images ({variantImages[variantIndex]?.length || 0}/5)</h4>
                             <input
                                 type="file"
                                 accept="image/*"
                                 multiple
                                 onChange={(e) => handleVariantImageChange(variantIndex, e)}
                                 className="form-control"
+                                disabled={variantImages[variantIndex]?.length >= 5}
                             />
                             <div className="image-previews">
                                 {variantPreviews[variantIndex]?.map((preview, imageIndex) => (

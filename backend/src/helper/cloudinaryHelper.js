@@ -1,22 +1,11 @@
 const createError = require('http-errors');
 const { cloudinary } = require('../config/cloudinary');
 
-const getPublicIdFromUrl = (imageUrl) => {
+const getPublicIdFromUrl = (url) => {
     try {
-        if (!imageUrl) return null;
-        
-        // Extract everything after '/upload/'
-        const matches = imageUrl.match(/upload\/(.+)/);
-        if (!matches || !matches[1]) {
-            throw new Error('Invalid image URL format');
-        }
-        
-        // Get the full path including folder structure but remove file extension
-        const fullPath = matches[1].split('.')[0];
-        
-        // For URLs like: .../upload/nibedito/categories/categories-1738158607667-995553041.jpg
-        // This will return: nibedito/categories/categories-1738158607667-995553041
-        return fullPath;
+        if (!url) return null;
+        const matches = url.match(/upload\/v\d+\/(.+?)\./);
+        return matches ? matches[1] : null;
     } catch (error) {
         console.error('Error extracting public ID:', error);
         return null;
@@ -38,26 +27,53 @@ const transformImageUrl = (url, options = {}) => {
         : url;
 };
 
-const uploadImage = async (file, folder) => {
+const uploadImage = async (file, type, identifier) => {
     try {
-        const result = await cloudinary.uploader.upload(file.path, { folder });
+        let folder;
+        let publicId;
+
+        switch (type) {
+            case 'profile':
+                folder = 'nibedito/profiles';
+                publicId = `profiles-${identifier}`;
+                break;
+            case 'category':
+                folder = 'nibedito/categories';
+                publicId = `categories-${identifier}`;
+                break;
+            case 'product-thumbnail':
+                folder = 'nibedito/products/thumbnails';
+                publicId = `thumbnails-${identifier}`;
+                break;
+            case 'product-variant':
+                folder = 'nibedito/products/variants';
+                publicId = `variants-${identifier}`;
+                break;
+            default:
+                throw new Error('Invalid image type');
+        }
+
+        const result = await cloudinary.uploader.upload(file.path, {
+            folder,
+            public_id: publicId,
+            overwrite: true
+        });
         return result.secure_url;
     } catch (error) {
         throw createError(500, 'Error uploading image to cloudinary');
     }
 };
 
-const deleteImage = async (imageUrl) => {
+const deleteImage = async (url) => {
     try {
-        if (!imageUrl) return;
+        if (!url) return;
         
-        // Extract the public ID including the folder path
-        const matches = imageUrl.match(/upload\/v\d+\/(.+?)\./);
-        if (!matches || !matches[1]) {
+        // Get public ID from URL
+        const publicId = getPublicIdFromUrl(url);
+        if (!publicId) {
             throw new Error('Invalid image URL format');
         }
         
-        const publicId = matches[1]; // This will include the folder path
         console.log('Attempting to delete image with public ID:', publicId);
         
         const result = await cloudinary.uploader.destroy(publicId);
@@ -70,7 +86,8 @@ const deleteImage = async (imageUrl) => {
         return result;
     } catch (error) {
         console.error('Cloudinary delete error:', error);
-        throw createError(500, 'Error deleting image from cloudinary');
+        // Don't throw error, just log it and continue
+        return null;
     }
 };
 

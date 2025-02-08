@@ -13,8 +13,8 @@ const nextConfig = {
         pathname: '/dzrgyxroo/**',
       },
     ],
-    loader: 'default',
-    // Will be changed to Cloudinary loader later
+    domains: ['res.cloudinary.com'],
+    unoptimized: true,
   },
 };
 

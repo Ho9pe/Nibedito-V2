@@ -30,7 +30,11 @@ const createProduct = async (req, res, next) => {
         // Upload thumbnail
         const thumbnailImage = files.thumbnail[0];
         validateImage(thumbnailImage);
-        const thumbnailUrl = await uploadImage(thumbnailImage, "nibedito/products/thumbnails");
+        const thumbnailUrl = await uploadImage(
+            thumbnailImage, 
+            'product-thumbnail',
+            slugify(name).toLowerCase()
+        );
 
         // Process variants
         let parsedVariants = [];
@@ -39,23 +43,28 @@ const createProduct = async (req, res, next) => {
             
             // Handle variant images
             if (files.variantImages) {
-                for (const variant of parsedVariants) {
+                let processedImageCount = 0;
+                
+                for (let variantIndex = 0; variantIndex < parsedVariants.length; variantIndex++) {
+                    const variant = parsedVariants[variantIndex];
                     const variantImages = [];
+                    
                     if (variant.imageIndices?.length > 0) {
                         if (variant.imageIndices.length > 5) {
                             throw createError(400, "Maximum 5 images allowed per variant");
                         }
                         
-                        for (const index of variant.imageIndices) {
-                            const image = files.variantImages[index];
+                        for (let i = 0; i < variant.imageIndices.length; i++) {
+                            const image = files.variantImages[processedImageCount];
                             if (image) {
                                 validateImage(image);
                                 const imageUrl = await uploadImage(
-                                    image, 
-                                    `nibedito/products/variants/${slugify(name).toLowerCase()}`
+                                    image,
+                                    'product-variant',
+                                    `${slugify(name).toLowerCase()}-variant${variantIndex}-${i}`
                                 );
                                 variantImages.push(imageUrl);
-
+                                processedImageCount++;
                             }
                         }
                     }
@@ -250,7 +259,8 @@ const updateProduct = async (req, res, next) => {
             validateImage(thumbnailImage);
             updates.thumbnailImage = await uploadImage(
                 thumbnailImage, 
-                "nibedito/products/thumbnails"
+                'product-thumbnail',
+                slugify(name).toLowerCase()
             );
         }
 
@@ -276,16 +286,16 @@ const updateProduct = async (req, res, next) => {
                             throw createError(400, "Maximum 5 images allowed per variant");
                         }
                         
-                        for (const index of variant.imageIndices) {
-                            const image = files.variantImages[index];
+                        for (let i = 0; i < variant.imageIndices.length; i++) {
+                            const image = files.variantImages[i];
                             if (image) {
                                 validateImage(image);
                                 const imageUrl = await uploadImage(
-                                    image, 
-                                    `nibedito/products/variants/${updates.slug || slug}`
+                                    image,
+                                    'product-variant',
+                                    `${slugify(name).toLowerCase()}-variant${index}-${i}`
                                 );
                                 variantImages.push(imageUrl);
-
                             }
                         }
                     }

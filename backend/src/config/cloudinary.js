@@ -38,19 +38,27 @@ const fileFilter = (req, file, cb) => {
 // Create upload middleware for products with multiple fields
 const createProductUploader = () => {
     return multer({
-        storage: createStorage('products'),
+        storage: multer.diskStorage({
+            filename: function (req, file, cb) {
+                cb(null, file.fieldname + '-' + Date.now());
+            }
+        }),
         fileFilter,
         limits: { fileSize: 10 * 1024 * 1024 }
     }).fields([
         { name: 'thumbnail', maxCount: 1 },
-        { name: 'variantImages', maxCount: 25 } // 5 images * 5 variants max
+        { name: 'variantImages', maxCount: 25 }
     ]);
 };
 
 // Create upload middleware for single files
 const createUploader = (folder, fileSize = 5) => {
     return multer({
-        storage: createStorage(folder),
+        storage: multer.diskStorage({
+            filename: function (req, file, cb) {
+                cb(null, file.fieldname + '-' + Date.now());
+            }
+        }),
         fileFilter,
         limits: { fileSize: fileSize * 1024 * 1024 }
     });
