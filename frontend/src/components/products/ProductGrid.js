@@ -36,26 +36,24 @@ export default function ProductGrid({ products, isLoading, error, pagination, on
             
             {pagination && (
                 <div className="pagination">
-                    <button 
+                    <button
                         className="pagination-btn"
-                        disabled={!pagination.previousPage}
-                        onClick={() => onPageChange(pagination.previousPage)}
+                        disabled={!pagination.hasPreviousPage}
+                        onClick={() => onPageChange(pagination.currentPage - 1)}
                     >
-                        <FiChevronLeft />
-                        Previous
+                        <FiChevronLeft /> Previous
                     </button>
                     
                     <span className="pagination-info">
                         Page {pagination.currentPage} of {pagination.totalPages}
                     </span>
                     
-                    <button 
+                    <button
                         className="pagination-btn"
-                        disabled={!pagination.nextPage}
-                        onClick={() => onPageChange(pagination.nextPage)}
+                        disabled={!pagination.hasNextPage}
+                        onClick={() => onPageChange(pagination.currentPage + 1)}
                     >
-                        Next
-                        <FiChevronRight />
+                        Next <FiChevronRight />
                     </button>
                 </div>
             )}

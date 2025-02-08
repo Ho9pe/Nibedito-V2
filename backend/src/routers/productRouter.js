@@ -19,7 +19,7 @@ const productRouter = express.Router();
 productRouter.post(
     "/",
     isAdmin,
-    uploadProduct.array("image", 10),
+    uploadProduct,
     validateProduct,
     validateRequest,
     createProduct
@@ -33,9 +33,8 @@ productRouter.delete("/:slug", isLoggedIn, isAdmin, deleteProduct); //delete a p
 
 productRouter.put(
     "/:slug",
-    isLoggedIn,
     isAdmin,
-    uploadProduct.array("image", 10),
+    uploadProduct,
     validateProduct,
     validateRequest,
     updateProduct

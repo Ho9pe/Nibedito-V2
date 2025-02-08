@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { FiX, FiUpload, FiPlus, FiTrash2, FiImage } from 'react-icons/fi';
 import { productService } from '@/services/productService';
@@ -15,14 +15,17 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
         description: product?.description || '',
         price: product?.price || '',
         category: product?.category?._id || '',
-        shipping: product?.shipping ?? true,
+        shipping: product?.shipping || false,
         variants: product?.variants || []
     });
-    const [images, setImages] = useState([]);
-    const [previewImages, setPreviewImages] = useState([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [thumbnailImage, setThumbnailImage] = useState(null);
+    const [thumbnailPreview, setThumbnailPreview] = useState('');
+    const [variantImages, setVariantImages] = useState({});
+    const [variantPreviews, setVariantPreviews] = useState({});
+    const [isLoading, setIsLoading] = useState(false);
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
     const [error, setError] = useState('');
+    const fileInputRef = useRef(null);
 
     const handleError = (message) => {
         setError(message);
@@ -53,19 +56,43 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
         }));
     };
 
-    const handleImageChange = (e) => {
-        const files = Array.from(e.target.files);
-        setImages(prev => [...prev, ...files]);
-        
-        // Create preview URLs
-        const newPreviewUrls = files.map(file => URL.createObjectURL(file));
-        setPreviewImages(prev => [...prev, ...newPreviewUrls]);
+    const handleThumbnailChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setThumbnailImage(file);
+            setThumbnailPreview(URL.createObjectURL(file));
+        }
     };
 
-    const removeImage = (index) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-        URL.revokeObjectURL(previewImages[index]);
-        setPreviewImages(prev => prev.filter((_, i) => i !== index));
+    const handleVariantImageChange = (variantIndex, e) => {
+        const files = Array.from(e.target.files);
+        if (files.length > 5) {
+            handleError('Maximum 5 images allowed per variant');
+            return;
+        }
+
+        setVariantImages(prev => ({
+            ...prev,
+            [variantIndex]: files
+        }));
+
+        const previews = files.map(file => URL.createObjectURL(file));
+        setVariantPreviews(prev => ({
+            ...prev,
+            [variantIndex]: previews
+        }));
+    };
+
+    const removeVariantImage = (variantIndex, imageIndex) => {
+        setVariantImages(prev => ({
+            ...prev,
+            [variantIndex]: prev[variantIndex].filter((_, i) => i !== imageIndex)
+        }));
+
+        setVariantPreviews(prev => ({
+            ...prev,
+            [variantIndex]: prev[variantIndex].filter((_, i) => i !== imageIndex)
+        }));
     };
 
     const handleVariantChange = (index, field, value) => {
@@ -93,62 +120,60 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
-        setError('');
-
-        // Debug token
-        const token = localStorage.getItem('token');
-        console.log('Token:', token);
+        setIsLoading(true);
 
         try {
-            // Validation checks
-            if (!formData.name.trim()) throw new Error('Product name is required');
-            if (!formData.description.trim()) throw new Error('Description is required');
-            if (!formData.price || formData.price <= 0) throw new Error('Valid price is required');
-            if (!formData.category) throw new Error('Category is required');
-            if (!images.length) throw new Error('At least one image is required');
+            if (!thumbnailImage) {
+                throw new Error('Thumbnail image is required');
+            }
 
             const formDataToSend = new FormData();
-            formDataToSend.append('name', formData.name.trim());
-            formDataToSend.append('description', formData.description.trim());
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('description', formData.description);
             formDataToSend.append('price', formData.price);
             formDataToSend.append('category', formData.category);
             formDataToSend.append('shipping', formData.shipping);
 
-            // Handle variants
-            if (formData.variants.length > 0) {
-                const variantsWithImages = formData.variants.map(variant => ({
-                    color: variant.color,
-                    size: variant.size,
-                    quantity: Number(variant.quantity),
-                    imageIndices: variant.imageIndices || []
-                }));
-                formDataToSend.append('variants', JSON.stringify(variantsWithImages));
-            }
+            // Append thumbnail with specific name
+            const thumbnailExtension = thumbnailImage.name.split('.').pop();
+            const thumbnailBlob = new Blob([thumbnailImage], { type: thumbnailImage.type });
+            formDataToSend.append('thumbnail', thumbnailBlob, `product-thumbnail.${thumbnailExtension}`);
 
-            // Append images
-            images.forEach((image, index) => {
-                formDataToSend.append('image', image);
+            // Process variants and their images
+            const variantsWithImageInfo = formData.variants.map((variant, index) => {
+                const variantImagesInfo = variantImages[index]?.map((_, imgIndex) => imgIndex) || [];
+                return {
+                    ...variant,
+                    imageIndices: variantImagesInfo
+                };
             });
 
-            console.log('FormData contents:');
-            for (let pair of formDataToSend.entries()) {
-                console.log(pair[0], pair[1]);
-            }
+            formDataToSend.append('variants', JSON.stringify(variantsWithImageInfo));
 
-            let response;
+            // Append variant images with specific names
+            Object.entries(variantImages).forEach(([variantIndex, images]) => {
+                images.forEach((image, imageIndex) => {
+                    const extension = image.name.split('.').pop();
+                    const blob = new Blob([image], { type: image.type });
+                    formDataToSend.append(
+                        'variantImages',
+                        blob,
+                        `product-variant-${variantIndex}-${imageIndex}.${extension}`
+                    );
+                });
+            });
+
             if (product) {
-                response = await productService.updateProduct(product.slug, formDataToSend);
+                await productService.updateProduct(product.slug, formDataToSend);
             } else {
-                response = await productService.createProduct(formDataToSend);
+                await productService.createProduct(formDataToSend);
             }
 
-            onSuccess(response);
+            onSuccess();
         } catch (error) {
-            console.error('Error details:', error);
             handleError(error.message);
         } finally {
-            setIsSubmitting(false);
+            setIsLoading(false);
         }
     };
 
@@ -247,45 +272,35 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                 </div>
             </div>
 
-            {/* Images Section */}
+            {/* Thumbnail Section */}
             <div className="form-section">
-                <h3>Product Images</h3>
-                <div className="image-upload-section">
-                    <label htmlFor="images" className="image-upload-container">
-                        <input
-                            type="file"
-                            id="images"
-                            onChange={handleImageChange}
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                        />
-                        <div className="upload-placeholder">
-                            <FiUpload className="upload-icon" />
-                            <span>Click to upload images</span>
-                        </div>
-                    </label>
-
-                    {previewImages.length > 0 && (
-                        <div className="image-previews">
-                            {previewImages.map((preview, index) => (
-                                <div key={index} className="image-preview">
-                                    <Image
-                                        src={preview}
-                                        alt={`Preview ${index + 1}`}
-                                        width={100}
-                                        height={100}
-                                        className="preview-img"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeImage(index)}
-                                        className="remove-image"
-                                    >
-                                        <FiX />
-                                    </button>
-                                </div>
-                            ))}
+                <h3>Thumbnail Image</h3>
+                <div className="thumbnail-upload">
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailChange}
+                        className="form-control"
+                    />
+                    {thumbnailPreview && (
+                        <div className="thumbnail-preview">
+                            <Image
+                                src={thumbnailPreview}
+                                alt="Thumbnail preview"
+                                width={200}
+                                height={200}
+                                className="preview-img"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setThumbnailImage(null);
+                                    setThumbnailPreview('');
+                                }}
+                                className="remove-image"
+                            >
+                                <FiX />
+                            </button>
                         </div>
                     )}
                 </div>
@@ -304,13 +319,13 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                     </button>
                 </div>
 
-                {formData.variants.map((variant, index) => (
-                    <div key={index} className="variant-form">
+                {formData.variants.map((variant, variantIndex) => (
+                    <div key={variantIndex} className="variant-item">
                         <div className="variant-header">
-                            <h4>Variant #{index + 1}</h4>
+                            <h4>Variant #{variantIndex + 1}</h4>
                             <button
                                 type="button"
-                                onClick={() => removeVariant(index)}
+                                onClick={() => removeVariant(variantIndex)}
                                 className="btn btn-icon btn-danger"
                             >
                                 <FiTrash2 />
@@ -323,7 +338,7 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                                 <input
                                     type="text"
                                     value={variant.color}
-                                    onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
+                                    onChange={(e) => handleVariantChange(variantIndex, 'color', e.target.value)}
                                     className="form-input"
                                     placeholder="Enter color"
                                     required
@@ -335,7 +350,7 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                                 <input
                                     type="text"
                                     value={variant.size}
-                                    onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                                    onChange={(e) => handleVariantChange(variantIndex, 'size', e.target.value)}
                                     className="form-input"
                                     placeholder="Enter size"
                                     required
@@ -347,7 +362,7 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                                 <input
                                     type="number"
                                     value={variant.quantity}
-                                    onChange={(e) => handleVariantChange(index, 'quantity', parseInt(e.target.value))}
+                                    onChange={(e) => handleVariantChange(variantIndex, 'quantity', parseInt(e.target.value))}
                                     className="form-input"
                                     min="0"
                                     required
@@ -356,17 +371,34 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                         </div>
 
                         <div className="variant-images">
+                            <h4>Variant Images (Max 5)</h4>
                             <input
                                 type="file"
                                 accept="image/*"
                                 multiple
-                                onChange={(e) => {
-                                    const startIndex = images.length;
-                                    handleImageChange(e);
-                                    const imageIndices = Array.from(e.target.files).map((_, i) => startIndex + i);
-                                    handleVariantChange(index, 'imageIndices', imageIndices);
-                                }}
+                                onChange={(e) => handleVariantImageChange(variantIndex, e)}
+                                className="form-control"
                             />
+                            <div className="image-previews">
+                                {variantPreviews[variantIndex]?.map((preview, imageIndex) => (
+                                    <div key={imageIndex} className="image-preview">
+                                        <Image
+                                            src={preview}
+                                            alt={`Variant ${variantIndex} preview ${imageIndex}`}
+                                            width={100}
+                                            height={100}
+                                            className="preview-img"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeVariantImage(variantIndex, imageIndex)}
+                                            className="remove-image"
+                                        >
+                                            <FiX />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -378,7 +410,7 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                         type="button"
                         onClick={onCancel}
                         className="btn btn-secondary"
-                        disabled={isSubmitting}
+                        disabled={isLoading}
                     >
                         Cancel
                     </button>
@@ -386,9 +418,9 @@ export default function ProductForm({ product, onSuccess, onError, onCancel }) {
                 <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={isSubmitting}
+                    disabled={isLoading}
                 >
-                    {isSubmitting ? 'Saving...' : product ? 'Update Product' : 'Create Product'}
+                    {isLoading ? 'Saving...' : product ? 'Update Product' : 'Create Product'}
                 </button>
             </div>
         </form>

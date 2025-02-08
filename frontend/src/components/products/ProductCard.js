@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiShoppingCart, FiStar } from 'react-icons/fi';
+import { useEffect } from 'react';
 
 export default function ProductCard({ product }) {
     const {
@@ -14,8 +15,15 @@ export default function ProductCard({ product }) {
         averageRating
     } = product;
 
+    useEffect(() => {
+        const description = document.querySelector(`#product-${product._id} .product-description`);
+        if (description && description.scrollHeight > description.clientHeight) {
+            description.classList.add('truncated');
+        }
+    }, [product]);
+
     return (
-        <div className="product-card">
+        <div id={`product-${product._id}`} className="product-card">
             <div className="product-image">
                 <Image
                     src={thumbnailImage}

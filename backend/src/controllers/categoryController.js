@@ -3,7 +3,7 @@ const { successResponse } = require("./responseController");
 const Category = require("../models/categoryModel");
 const Product = require("../models/productModel");
 const slugify = require("slugify");
-const { getPublicIdFromUrl } = require("../helper/cloudinaryHelper");
+const { getPublicIdFromUrl, uploadImage } = require("../helper/cloudinaryHelper");
 const { deleteImage } = require("../helper/cloudinaryHelper");
 
 const createCategory = async (req, res, next) => {
@@ -14,11 +14,17 @@ const createCategory = async (req, res, next) => {
         if (categoryExists) {
             throw createError(409, "Category already exists");
         }
+
+        let imageUrl = '';
+        if (image) {
+            imageUrl = await uploadImage(image, 'category', slugify(name).toLowerCase());
+        }
+
         const category = await Category.create({
             name,
             slug: slugify(name),
             description,
-            image: image?.path || '',
+            image: imageUrl,
             productCount: 0
         });
         return successResponse(res, {
@@ -90,7 +96,7 @@ const updateCategory = async (req, res, next) => {
                 if (category.image) {
                     await deleteImage(category.image);
                 }
-                updates.image = image.path;
+                updates.image = await uploadImage(image, 'category', slugify(name).toLowerCase());
             } catch (error) {
                 console.error('Error handling image update:', error);
                 // Continue with update even if image deletion fails

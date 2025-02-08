@@ -8,6 +8,7 @@ import ProductForm from '@/components/admin/products/ProductForm';
 import ProductStats from '@/components/admin/products/ProductStats';
 import Error from '@/components/common/Error';
 import { productService } from '@/services/productService';
+import ProductTester from '@/components/admin/products/ProductTester';
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -32,9 +33,8 @@ export default function ProductsPage() {
     const fetchProducts = async (page = 1) => {
         try {
             setIsLoadingProducts(true);
-            const response = await productService.getAllProducts({ page, limit: 9 });
+            const response = await productService.getAllProducts({ page, limit: 25 });
             
-            // Access the payload from the response
             const { products, pagination, ...stats } = response.payload;
             
             setProducts(products || []);
@@ -87,6 +87,8 @@ export default function ProductsPage() {
             {!isAddMode && !isLoadingProducts && (
                 <ProductStats products={products} totalStats={totalStats} />
             )}
+
+            {!isAddMode && <ProductTester />}
 
             {status.message && (
                 <Error 

@@ -10,10 +10,11 @@ const { getPublicIdFromUrl } = require("../helper/cloudinaryHelper");
 const createProduct = async (req, res, next) => {
     try {
         const { name, description, price, variants, shipping, category } = req.body;
-        const images = req.files; // Already uploaded by Cloudinary
+        const files = req.files;
 
-        if (!images || images.length === 0) {
-            throw createError(400, "At least one image is required");
+        // Validate thumbnail
+        if (!files?.thumbnail?.[0]) {
+            throw createError(400, "Thumbnail image is required");
         }
 
         const productExist = await Product.exists({ name });
@@ -26,27 +27,43 @@ const createProduct = async (req, res, next) => {
             throw createError(404, "Category not found");
         }
 
-        // First image is thumbnail
-        const thumbnailUrl = images[0].path;
+        // Upload thumbnail
+        const thumbnailImage = files.thumbnail[0];
+        validateImage(thumbnailImage);
+        const thumbnailUrl = await uploadImage(thumbnailImage, "nibedito/products/thumbnails");
 
         // Process variants
         let parsedVariants = [];
         if (variants) {
             parsedVariants = JSON.parse(variants);
-            for (const variant of parsedVariants) {
-                const variantImages = [];
-                if (variant.imageIndices?.length > 0) {
-                    for (const index of variant.imageIndices) {
-                        if (images[index]) {
-                            variantImages.push(images[index].path);
+            
+            // Handle variant images
+            if (files.variantImages) {
+                for (const variant of parsedVariants) {
+                    const variantImages = [];
+                    if (variant.imageIndices?.length > 0) {
+                        if (variant.imageIndices.length > 5) {
+                            throw createError(400, "Maximum 5 images allowed per variant");
+                        }
+                        
+                        for (const index of variant.imageIndices) {
+                            const image = files.variantImages[index];
+                            if (image) {
+                                validateImage(image);
+                                const imageUrl = await uploadImage(
+                                    image, 
+                                    `nibedito/products/variants/${slugify(name).toLowerCase()}`
+                                );
+                                variantImages.push(imageUrl);
+
+                            }
                         }
                     }
+                    variant.images = variantImages;
                 }
-                variant.images = variantImages;
             }
         }
 
-        // Create product
         const product = await Product.create({
             name,
             slug: slugify(name),
@@ -162,13 +179,27 @@ const deleteProduct = async (req, res, next) => {
 
         // Delete thumbnail
         if (product.thumbnailImage) {
-            await deleteImage(product.thumbnailImage);
+            try {
+                const publicId = getPublicIdFromUrl(product.thumbnailImage);
+                await deleteImage(publicId);
+                console.log('Product thumbnail deleted from Cloudinary:', product.thumbnailImage);
+            } catch (error) {
+                console.error('Error deleting thumbnail:', error);
+                // Continue with deletion even if thumbnail deletion fails
+            }
         }
 
         // Delete variant images
         for (const variant of product.variants || []) {
             for (const image of variant.images || []) {
-                await deleteImage(image);
+                try {
+                    const publicId = getPublicIdFromUrl(image);
+                    await deleteImage(publicId);
+                    console.log('Variant image deleted from Cloudinary:', image);
+                } catch (error) {
+                    console.error('Error deleting variant image:', error);
+                    // Continue with deletion even if variant image deletion fails
+                }
             }
         }
 
@@ -188,7 +219,7 @@ const updateProduct = async (req, res, next) => {
     try {
         const { slug } = req.params;
         const { name, description, price, variants, shipping, category } = req.body;
-        const images = req.files;
+        const files = req.files;
 
         const product = await Product.findOne({ slug });
         if (!product) {
@@ -208,13 +239,21 @@ const updateProduct = async (req, res, next) => {
         }
 
         // Handle thumbnail update
-        if (images?.length > 0) {
+        if (files?.thumbnail?.[0]) {
+            // Delete old thumbnail
             if (product.thumbnailImage) {
                 const publicId = getPublicIdFromUrl(product.thumbnailImage);
                 await deleteImage(publicId);
             }
-            updates.thumbnailImage = images[0].path;
+            // Upload new thumbnail
+            const thumbnailImage = files.thumbnail[0];
+            validateImage(thumbnailImage);
+            updates.thumbnailImage = await uploadImage(
+                thumbnailImage, 
+                "nibedito/products/thumbnails"
+            );
         }
+
 
         // Handle variants update
         if (variants) {
@@ -223,28 +262,34 @@ const updateProduct = async (req, res, next) => {
             // Delete old variant images
             for (const oldVariant of product.variants) {
                 for (const image of oldVariant.images || []) {
-                    await deleteImage(image);
+                    const publicId = getPublicIdFromUrl(image);
+                    await deleteImage(publicId);
                 }
             }
 
             // Process new variants
-            for (const variant of parsedVariants) {
-                const variantImages = [];
-                if (variant.imageIndices?.length > 0) {
-                    for (const index of variant.imageIndices) {
-                        if (images?.[index]) {
-                            validateImage(images[index]);
-                            const imageUrl = await uploadImage(images[index], "ecommerce/products/variants");
-                            variantImages.push(imageUrl);
+            if (files?.variantImages) {
+                for (const variant of parsedVariants) {
+                    const variantImages = [];
+                    if (variant.imageIndices?.length > 0) {
+                        if (variant.imageIndices.length > 5) {
+                            throw createError(400, "Maximum 5 images allowed per variant");
+                        }
+                        
+                        for (const index of variant.imageIndices) {
+                            const image = files.variantImages[index];
+                            if (image) {
+                                validateImage(image);
+                                const imageUrl = await uploadImage(
+                                    image, 
+                                    `nibedito/products/variants/${updates.slug || slug}`
+                                );
+                                variantImages.push(imageUrl);
+
+                            }
                         }
                     }
-                }
-                variant.images = variantImages;
-            }
-
-            for (const variant of parsedVariants) {
-                if (typeof variant.quantity !== 'number' || variant.quantity < 0) {
-                    throw createError(400, "Invalid variant quantity");
+                    variant.images = variantImages;
                 }
             }
 

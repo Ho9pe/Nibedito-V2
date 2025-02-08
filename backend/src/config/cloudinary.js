@@ -35,7 +35,19 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Create upload middleware
+// Create upload middleware for products with multiple fields
+const createProductUploader = () => {
+    return multer({
+        storage: createStorage('products'),
+        fileFilter,
+        limits: { fileSize: 10 * 1024 * 1024 }
+    }).fields([
+        { name: 'thumbnail', maxCount: 1 },
+        { name: 'variantImages', maxCount: 25 } // 5 images * 5 variants max
+    ]);
+};
+
+// Create upload middleware for single files
 const createUploader = (folder, fileSize = 5) => {
     return multer({
         storage: createStorage(folder),
@@ -47,7 +59,7 @@ const createUploader = (folder, fileSize = 5) => {
 // Export configured uploaders
 module.exports = {
     cloudinary,
-    uploadProduct: createUploader('products'),
+    uploadProduct: createProductUploader(),
     uploadCategory: createUploader('categories'),
     uploadProfile: createUploader('profiles', 5), // 5MB limit for profiles
     deleteImage: async (publicId) => {

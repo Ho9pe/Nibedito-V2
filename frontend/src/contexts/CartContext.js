@@ -77,13 +77,42 @@ export function CartProvider({ children }) {
         }
     };
 
+    const updateQuantity = async (itemId, newQuantity) => {
+        try {
+            const response = await fetch(`/api/cart/items/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quantity: newQuantity })
+            });
+            const data = await response.json();
+            setCart(data.payload.cart);
+            return true;
+        } catch (error) {
+            console.error('Failed to update quantity:', error);
+            return false;
+        }
+    };
+
+    const clearCart = async () => {
+        try {
+            await fetch('/api/cart', { method: 'DELETE' });
+            setCart(null);
+            return true;
+        } catch (error) {
+            console.error('Failed to clear cart:', error);
+            return false;
+        }
+    };
+
     return (
         <CartContext.Provider value={{
             cart,
             loading,
             addToCart,
             updateCartItem,
-            removeFromCart
+            removeFromCart,
+            updateQuantity,
+            clearCart
         }}>
             {children}
         </CartContext.Provider>

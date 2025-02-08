@@ -8,6 +8,7 @@ import { FiSearch, FiShoppingCart, FiUser } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 import { categoryService } from '@/services/categoryService';
 import { getImageUrl } from '@/utils/imageUtils';
+import { useCart } from '@/contexts/CartContext';
 
 export default function Navbar() {
     const router = useRouter();
@@ -70,6 +71,18 @@ export default function Navbar() {
         );
     };
 
+    const CartCount = () => {
+        const { cart } = useCart();
+        const itemCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
+        
+        return (
+            <Link href="/cart" className="nav-link cart-link">
+                <FiShoppingCart />
+                {itemCount > 0 && <span className="cart-count">{itemCount}</span>}
+            </Link>
+        );
+    };
+
     return (
         <nav className="navbar">
             <div className="container nav-container">
@@ -119,10 +132,7 @@ export default function Navbar() {
 
                     {user ? (
                         <>
-                            <Link href="/cart" className="nav-link cart-link">
-                                <FiShoppingCart />
-                                <span className="cart-count">3</span>
-                            </Link>
+                            <CartCount />
                             {renderProfileLink()}
                         </>
                     ) : (
