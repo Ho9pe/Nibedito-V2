@@ -6,6 +6,7 @@ const {
     getCategory,
     updateCategory,
     deleteCategory,
+    recalculateProductCounts
 } = require("../controllers/categoryController");
 const { validateCategory } = require("../validators/category");
 const { validateRequest } = require("../middlewares/validateRequest");
@@ -23,6 +24,9 @@ categoryRouter.post(
     validateRequest,
     createCategory
 );
+
+//POST /api/categories/recalculate-counts
+categoryRouter.post("/recalculate-counts", isLoggedIn, isAdmin, recalculateProductCounts);
 
 //GET /api/categories common path
 categoryRouter.get("/", getCategories);

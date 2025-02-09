@@ -8,6 +8,7 @@ import ProductForm from '@/components/admin/products/ProductForm';
 import ProductStats from '@/components/admin/products/ProductStats';
 import Error from '@/components/common/Error';
 import { productService } from '@/services/productService';
+import ProductTester from '@/components/admin/products/ProductTester';
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -125,6 +126,7 @@ export default function ProductsPage() {
                     onProductClick={handleProductClick}
                 />
             )}
+            <ProductTester />
         </div>
     );
 }

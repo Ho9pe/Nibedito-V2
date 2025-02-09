@@ -171,10 +171,29 @@ const deleteCategory = async (req, res, next) => {
     }
 };
 
+const recalculateProductCounts = async (req, res, next) => {
+    try {
+        await Category.recalculateProductCounts();
+        
+        const categories = await Category.find({})
+            .select("name slug description image productCount isActive")
+            .lean();
+            
+        return successResponse(res, {
+            statusCode: 200,
+            message: "Product counts recalculated successfully",
+            payload: { categories }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createCategory,
     getCategories,
     getCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    recalculateProductCounts
 };

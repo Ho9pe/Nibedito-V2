@@ -7,7 +7,7 @@ const { findWithID } = require('../services/findItem');
 const { createJSONWebToken } = require('../helper/jsonwebtoken');
 const { jwtActivationKey, clientURL } = require('../secret');
 const { emailWithNodeMailer } = require('../helper/email');
-const { cloudinary } = require('../config/cloudinary');
+const { deleteImage, uploadImage, getPublicIdFromUrl } = require('../helper/cloudinaryHelper');
 
 const getUserById = async (req, res, next) => {
     try {
@@ -107,22 +107,50 @@ const updateUserProfilePicture = async (req, res, next) => {
             throw createError(400, 'No file uploaded');
         }
 
-        const updatedUser = await User.findByIdAndUpdate(
-            userId, 
-            { profilePicture: req.file.path }, 
-            { new: true }
-        );
-        
-        if (!updatedUser) {
+        // Get current user to access old profile picture
+        const currentUser = await User.findById(userId);
+        if (!currentUser) {
             throw createError(404, 'User not found');
         }
-        
-        updatedUser.password = undefined;
-        return successResponse(res, {
-            statusCode: 200,
-            message: 'User profile picture updated successfully',
-            payload: { user: updatedUser }
-        });
+
+        // Delete old profile picture from Cloudinary if it exists
+        if (currentUser.profilePicture) {
+            try {
+                const publicId = getPublicIdFromUrl(currentUser.profilePicture);
+                if (publicId) {
+                    await deleteImage(currentUser.profilePicture);
+                    console.log('Old profile picture deleted successfully');
+                }
+            } catch (error) {
+                console.error('Error deleting old profile picture:', error);
+                // Continue with update even if delete fails
+            }
+        }
+
+        try {
+            // Upload new profile picture
+            const imageUrl = await uploadImage(
+                req.file,
+                'profile',
+                `user-${userId}-${Date.now()}`
+            );
+
+            // Update user with new profile picture
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                { profilePicture: imageUrl },
+                { new: true }
+            ).select('-password');
+
+            return successResponse(res, {
+                statusCode: 200,
+                message: 'User profile picture updated successfully',
+                payload: { user: updatedUser }
+            });
+        } catch (error) {
+            console.error('Error uploading new profile picture:', error);
+            throw createError(500, 'Error uploading profile picture');
+        }
     } catch (error) {
         next(error);
     }

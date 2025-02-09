@@ -34,5 +34,16 @@ const categorySchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Add this static method to the category schema
+categorySchema.statics.recalculateProductCounts = async function() {
+    const categories = await this.find({});
+    const Product = mongoose.model('Product');
+    
+    for (const category of categories) {
+        const count = await Product.countDocuments({ category: category._id });
+        await this.findByIdAndUpdate(category._id, { productCount: count });
+    }
+};
+
 const Category = mongoose.model('Category', categorySchema);
 module.exports = Category;

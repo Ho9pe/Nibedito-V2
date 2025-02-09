@@ -82,15 +82,15 @@ export default function CategoryTester() {
             }
 
             // Test 4: Delete Category
-            // if (updatedSlug) { // Use the updated slug
-            //     try {
-            //         const deleteResponse = await categoryService.deleteCategory(updatedSlug);
-            //         addResult('Delete Category', true, 
-            //             `Deleted category: ${deleteResponse.payload.category.name}`);
-            //     } catch (error) {
-            //         addResult('Delete Category', false, error.message);
-            //     }
-            // }
+            if (updatedSlug) { // Use the updated slug
+                try {
+                    const deleteResponse = await categoryService.deleteCategory(updatedSlug);
+                    addResult('Delete Category', true, 
+                        `Deleted category: ${deleteResponse.payload.category.name}`);
+                } catch (error) {
+                    addResult('Delete Category', false, error.message);
+                }
+            }
 
         } catch (error) {
             addResult('Test Suite', false, 'Test suite failed: ' + error.message);

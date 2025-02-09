@@ -185,41 +185,39 @@ const deleteProduct = async (req, res, next) => {
             throw createError(404, "Product not found!");
         }
 
-        // Delete thumbnail
+        // Delete thumbnail - pass the full URL
         if (product.thumbnailImage) {
             try {
-                const publicId = product.thumbnailImage;
-                await deleteImage(publicId);
-                console.log('Product thumbnail deleted from Cloudinary:', product.thumbnailImage);
+                await deleteImage(product.thumbnailImage);
+                console.log('Product thumbnail deleted:', product.thumbnailImage);
             } catch (error) {
                 console.error('Error deleting thumbnail:', error);
             }
         }
 
-        // Delete variant images
+        // Delete variant images - pass the full URLs
         if (product.variants && product.variants.length > 0) {
             for (const variant of product.variants) {
                 if (variant.images && variant.images.length > 0) {
                     for (const imageUrl of variant.images) {
                         try {
-                            const publicId = imageUrl;
-                            await deleteImage(publicId);
-                            console.log('Variant image deleted from Cloudinary:', imageUrl);
+                            await deleteImage(imageUrl);
+                            console.log('Variant image deleted:', imageUrl);
                         } catch (error) {
                             console.error('Error deleting variant image:', error);
                         }
-
                     }
                 }
             }
         }
 
-        await Product.findOneAndDelete({ slug });
+        // Delete the product from database
+        const deletedProduct = await Product.findOneAndDelete({ slug });
 
         return successResponse(res, {
             statusCode: 200,
             message: "Product deleted successfully",
-            payload: { product }
+            payload: { product: deletedProduct }
         });
     } catch (error) {
         next(error);

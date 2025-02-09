@@ -415,3 +415,38 @@
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
 }
+
+.category-actions-header {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-refresh {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+    background-color: var(--hover-color);
+    transform: translateY(-1px);
+}
+
+.btn-refresh:active {
+    transform: translateY(0);
+}
+
+.refresh-icon {
+    transition: transform 0.3s ease;
+}
+
+.btn-refresh:hover .refresh-icon {
+    transform: rotate(180deg);
+}

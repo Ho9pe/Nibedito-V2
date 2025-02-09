@@ -1,7 +1,4 @@
 import axios from '@/utils/axios';
-import { API_URL } from '@/config/constants';
-
-const CATEGORY_URL = `${API_URL}/categories`;
 
 export const categoryService = {
     createCategory: async (formData) => {
@@ -64,10 +61,19 @@ export const categoryService = {
 
     getCategory: async (slug) => {
         try {
-            const response = await axios.get(`${CATEGORY_URL}/${slug}`);
+            const response = await axios.get(`/categories/${slug}`);
             return response.data.payload.category;
         } catch (error) {
             throw error.response?.data || error.message;
+        }
+    },
+
+    recalculateProductCounts: async () => {
+        try {
+            const { data } = await axios.post('/categories/recalculate-counts');
+            return data;
+        } catch (error) {
+            throw new Error(error.response?.data?.message || 'Failed to recalculate product counts');
         }
     }
 };

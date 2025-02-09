@@ -6,6 +6,7 @@ import { FiCamera } from 'react-icons/fi';
 import Error from '@/components/common/Error';
 import userService from '@/services/userService';
 import { uploadImage, getImageUrl } from '@/utils/imageUtils';
+import axios from '@/utils/axios';
 
 export default function UserProfile({ user: initialUser }) {
     const [user, setUser] = useState(initialUser);
@@ -16,9 +17,11 @@ export default function UserProfile({ user: initialUser }) {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef(null);
 
+    const API_URL = 'http://localhost:3001/api';
     useEffect(() => {
         if (user && Object.keys(user).length > 0) {
             setFormData({
+
                 name: user.name || '',
                 phone: user.phone || '',
                 street: user?.addresses?.[0]?.street || '',
@@ -48,41 +51,55 @@ export default function UserProfile({ user: initialUser }) {
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
             setStatus({
                 type: 'error',
-                message: 'Image size should be less than 2MB'
+                message: 'Image size should be less than 5MB'
             });
             return;
         }
 
-        // Create preview URL
-        const previewUrl = URL.createObjectURL(file);
-        setUser(prev => ({ ...prev, profilePicture: previewUrl }));
-
         try {
             setIsUploading(true);
             setStatus({ type: '', message: '' });
-            
-            const updatedUser = await uploadImage(file, user._id);
-            
-            // Cleanup preview URL
-            URL.revokeObjectURL(previewUrl);
-            
-            setUser(updatedUser);
+
+            const formData = new FormData();
+            formData.append('profilePicture', file);
+
+            const response = await axios.put(
+                `${API_URL}/users/profile/${user._id}`,
+                formData,
+                {
+                    headers: {
+
+                        'Content-Type': 'multipart/form-data'
+                    }
+                }
+            );
+
+            if (!response.data.success) {
+                throw new Error(response.data.message || 'Failed to upload image');
+            }
+
+            // Update local user state and localStorage
+            setUser(response.data.payload.user);
+            localStorage.setItem('user', JSON.stringify(response.data.payload.user));
+
             setStatus({
                 type: 'success',
                 message: 'Profile picture updated successfully'
             });
         } catch (err) {
-            // Revert to original image on error
-            setUser(prev => ({ ...prev, profilePicture: prev.profilePicture }));
+            console.error('Profile picture upload error:', err);
             setStatus({
                 type: 'error',
-                message: err.message || 'Failed to upload image'
+                message: err.response?.data?.message || 'Failed to upload image'
             });
         } finally {
             setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 

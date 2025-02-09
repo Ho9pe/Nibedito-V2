@@ -1,4 +1,4 @@
-import axios from './axios';
+import axios from '@/utils/axios';
 
 export const getImageUrl = (url, transform = {}) => {
     if (!url) return '/images/default-avatar.png';

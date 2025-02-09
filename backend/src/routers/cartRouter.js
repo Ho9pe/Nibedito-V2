@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { isLoggedIn } = require("../middlewares/auth");
+const { isLoggedIn } = require("../middlewares/authMiddleware");
 const { validateAddToCart, validateUpdateCart, validateRemoveFromCart } = require("../validators/cart");
 const { validateRequest } = require("../middlewares/validateRequest");
 const {

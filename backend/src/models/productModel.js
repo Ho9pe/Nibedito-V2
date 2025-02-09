@@ -102,9 +102,10 @@ productSchema.pre('findOneAndUpdate', async function(next) {
     const update = this.getUpdate();
     if (update.price) {
         try {
-            // Defer loading of Cart model until needed
-            const Cart = mongoose.models.Cart || mongoose.model('Cart');
+            // Get the Cart model using mongoose.models
+            const Cart = mongoose.model('Cart');
             const carts = await Cart.find({ 'items.product': this._conditions._id });
+            
             for (const cart of carts) {
                 cart.items.forEach(item => {
                     if (item.product.toString() === this._conditions._id.toString()) {
@@ -114,29 +115,45 @@ productSchema.pre('findOneAndUpdate', async function(next) {
                 await cart.save();
             }
         } catch (error) {
-            // If Cart model doesn't exist yet, skip the update
-            if (error.name === 'MissingSchemaError') {
-                console.log('Cart model not yet registered, skipping cart updates');
-            } else {
-                throw error;
-            }
+            console.error('Error updating carts:', error);
         }
     }
     next();
 });
 
 productSchema.post('save', async function() {
-    await this.model('Category').findByIdAndUpdate(
-        this.category,
-        { $inc: { productCount: 1 } }
-    );
+    if (this.isNew) {
+        const Category = mongoose.model('Category');
+        await Category.findByIdAndUpdate(
+            this.category,
+            { $inc: { productCount: 1 } }
+        );
+    }
 });
 
-productSchema.post('remove', async function() {
-    await this.model('Category').findByIdAndUpdate(
-        this.category,
-        { $inc: { productCount: -1 } }
-    );
+productSchema.pre('save', async function() {
+    if (!this.isNew && this.isModified('category')) {
+        const Category = mongoose.model('Category');
+        await Category.findByIdAndUpdate(
+            this._original.category,
+            { $inc: { productCount: -1 } }
+        );
+        await Category.findByIdAndUpdate(
+            this.category,
+            { $inc: { productCount: 1 } }
+        );
+    }
+});
+
+productSchema.pre('findOneAndDelete', async function() {
+    const product = await this.model.findOne(this.getQuery());
+    if (product) {
+        const Category = mongoose.model('Category');
+        await Category.findByIdAndUpdate(
+            product.category,
+            { $inc: { productCount: -1 } }
+        );
+    }
 });
 
 const Product = mongoose.model('Product', productSchema);

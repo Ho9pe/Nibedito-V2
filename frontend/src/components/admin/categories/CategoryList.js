@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { FiEdit2, FiTrash2, FiCheck, FiX, FiBox } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiCheck, FiX, FiBox, FiRefreshCw } from 'react-icons/fi';
 import { categoryService } from '@/services/categoryService';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import CategoryForm from './CategoryForm';
@@ -74,6 +74,22 @@ export default function CategoryList({ categories, isLoading, onUpdateSuccess, o
 
     return (
         <div className="category-list">
+            <div className="category-actions-header">
+                <button 
+                    className="btn btn-secondary btn-refresh"
+                    onClick={async () => {
+                        try {
+                            const response = await categoryService.recalculateProductCounts();
+                            onUpdateSuccess('Product counts updated successfully', response.payload.categories);
+                        } catch (error) {
+                            onError(error.message);
+                        }
+                    }}
+                    title="Recalculate product counts"
+                >
+                    <FiRefreshCw className="refresh-icon" /> Update Counts
+                </button>
+            </div>
             {categories
                 .filter(category => category.slug !== categoryToDelete)
                 .map(category => (

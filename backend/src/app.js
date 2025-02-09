@@ -11,6 +11,7 @@ const authRouter = require('./routers/authRouter');
 const adminRouter = require('./routers/adminRouter');
 const categoryRouter = require('./routers/categoryRouter');
 const productRouter = require('./routers/productRouter');
+const cartRouter = require('./routers/cartRouter');
 const { errorResponse } = require('./controllers/responseController');
 
 
@@ -28,7 +29,7 @@ app.use(cors({
 
 const rateLimiter = rateLimit({
     windowMs: 1 * 60 * 1000,
-    max: 30,
+    max: 300,
     message: 'Too many requests, Please try again later',
 });
 app.use(rateLimiter);
@@ -38,6 +39,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/products", productRouter);
+app.use("/api/cart", cartRouter);
 
 app.get('/test', (req, res) =>{
     res.status(200).send({
