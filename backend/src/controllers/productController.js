@@ -242,7 +242,7 @@ const updateProduct = async (req, res, next) => {
             price: price || product.price,
             category: category || product.category,
             shipping: shipping !== undefined ? shipping : product.shipping,
-            thumbnailImage: product.thumbnailImage // Keep existing thumbnail if not updating
+            thumbnailImage: product.thumbnailImage
         };
 
         // Handle name update and slug generation
@@ -261,13 +261,11 @@ const updateProduct = async (req, res, next) => {
         if (files?.thumbnail?.[0]) {
             // Delete old thumbnail
             if (product.thumbnailImage) {
-                const publicId = product.thumbnailImage;
-                await deleteImage(publicId);
+                await deleteImage(product.thumbnailImage);
             }
             // Upload new thumbnail
             const thumbnailImage = files.thumbnail[0];
             validateImage(thumbnailImage);
-
             updates.thumbnailImage = await uploadImage(
                 thumbnailImage, 
                 'product-thumbnail',
@@ -279,65 +277,54 @@ const updateProduct = async (req, res, next) => {
         if (variants) {
             const parsedVariants = JSON.parse(variants);
             
-            // If there are new variant images
-            if (files?.variantImages) {
-                let processedImageCount = 0;
+            let processedImageCount = 0;
+            
+            for (let i = 0; i < parsedVariants.length; i++) {
+                const variant = parsedVariants[i];
                 
-                for (let i = 0; i < parsedVariants.length; i++) {
-                    const variant = parsedVariants[i];
-                    
-                    // Skip variants without updates
-                    if (!variant.removedImageIndices && !variant.newImageCount) {
-                        variant.images = product.variants[i]?.images || [];
-                        continue;
-                    }
-
+                // Handle image updates even if no new images are uploaded
+                if (variant.removedImageIndices?.length > 0) {
                     let variantImages = [...(product.variants[i]?.images || [])];
 
-                    // Remove specified images
-                    if (variant.removedImageIndices?.length > 0) {
-                        // Delete removed images from storage
-                        for (const index of variant.removedImageIndices) {
-                            if (variantImages[index]) {
-                                const publicId = getPublicIdFromUrl(variantImages[index]);
-                                await deleteImage(publicId);
-                            }
-                        }
-                        
-                        // Filter out removed images
-                        variantImages = variantImages.filter((_, idx) => 
-                            !variant.removedImageIndices.includes(idx)
-                        );
-                    }
-
-                    // Add new images
-                    if (variant.newImageCount > 0) {
-                        for (let j = 0; j < variant.newImageCount; j++) {
-                            const image = files.variantImages[processedImageCount];
-                            if (image) {
-                                validateImage(image);
-                                const imageUrl = await uploadImage(
-                                    image,
-                                    'product-variant',
-                                    `${slugify(updates.name || name).toLowerCase()}-variant${i}-${j}`
-                                );
-                                variantImages.push(imageUrl);
-                                processedImageCount++;
-                            }
+                    // Delete removed images from storage
+                    for (const index of variant.removedImageIndices) {
+                        if (variantImages[index]) {
+                            await deleteImage(variantImages[index]);
                         }
                     }
-
+                    
+                    // Filter out removed images
+                    variantImages = variantImages.filter((_, idx) => 
+                        !variant.removedImageIndices.includes(idx)
+                    );
+                    
                     variant.images = variantImages;
-                    delete variant.removedImageIndices;
-                    delete variant.newImageCount;
                 }
-            } else {
-                // Keep existing variant images if no new images
-                parsedVariants.forEach((variant, index) => {
-                    if (!variant.images) {
-                        variant.images = product.variants[index]?.images || [];
+
+                // Handle new images if any
+                if (files?.variantImages && variant.newImageCount > 0) {
+                    let variantImages = variant.images || [];
+                    
+                    for (let j = 0; j < variant.newImageCount; j++) {
+                        const image = files.variantImages[processedImageCount];
+                        if (image) {
+                            validateImage(image);
+                            const imageUrl = await uploadImage(
+                                image,
+                                'product-variant',
+                                `${slugify(updates.name || name).toLowerCase()}-variant${i}-${j}`
+                            );
+                            variantImages.push(imageUrl);
+                            processedImageCount++;
+                        }
                     }
-                });
+                    
+                    variant.images = variantImages;
+                }
+
+                // Cleanup temporary properties
+                delete variant.removedImageIndices;
+                delete variant.newImageCount;
             }
             
             updates.variants = parsedVariants;

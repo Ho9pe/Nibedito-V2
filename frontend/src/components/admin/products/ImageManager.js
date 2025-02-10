@@ -44,7 +44,7 @@ export default function ImageManager({
 
     const removeImage = (index) => {
         setRemovedIndices(prev => [...prev, index]);
-        onImageRemove(index);
+        onImageChange([], [...removedIndices, index]); // Pass empty files array and updated removedIndices
     };
 
     return (

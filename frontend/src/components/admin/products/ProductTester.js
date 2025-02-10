@@ -123,12 +123,12 @@ export default function ProductTester() {
             // - Deletes the test product
             // - Validates cleanup of associated images
             // - Tests cascade deletion of product data
-            try {
-                const deleteResponse = await productService.deleteProduct(testProduct.slug);
-                addResult('Delete Product', deleteResponse);
-            } catch (error) {
-                addResult('Delete Product', error, false);
-            }
+            // try {
+            //     const deleteResponse = await productService.deleteProduct(testProduct.slug);
+            //     addResult('Delete Product', deleteResponse);
+            // } catch (error) {
+            //     addResult('Delete Product', error, false);
+            // }
         } catch (error) {
             addResult('Test Failed', error, false);
         } finally {

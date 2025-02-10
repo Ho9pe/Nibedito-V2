@@ -127,7 +127,7 @@ export default function ProductDetailsPage() {
             // Prepare variants with the new images
             const updatedVariants = [...formData.variants];
             
-            // Add new files to formData
+            // Add new files to formData if any
             files.forEach(file => {
                 formDataToSend.append('variantImages', file);
             });
@@ -135,8 +135,8 @@ export default function ProductDetailsPage() {
             // Create an update object for this variant
             const variantUpdate = {
                 ...updatedVariants[variantIndex],
-                removedImageIndices: removedIndices, // Indices of images to remove
-                newImageCount: files.length // Number of new images to add
+                removedImageIndices: removedIndices,
+                newImageCount: files.length
             };
 
             // Keep other variants unchanged
@@ -362,8 +362,7 @@ export default function ProductDetailsPage() {
                                 <ImageManager
                                     title={`Variant Images`}
                                     currentImage={variant.images}
-                                    onImageChange={(files) => handleVariantImagesChange(index, files)}
-                                    onImageRemove={() => {}}
+                                    onImageChange={(files, removedIndices) => handleVariantImagesChange(index, files, removedIndices)}
                                     multiple={true}
                                     maxImages={5}
                                 />

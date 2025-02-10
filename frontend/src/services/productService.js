@@ -68,21 +68,25 @@ export const productService = {
     },
 
     updateProduct: async (slug, formData) => {
-        const response = await fetch(`${PRODUCT_URL}/${slug}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            credentials: 'include',
-            body: formData
-        });
+        try {
+            const response = await fetch(`${PRODUCT_URL}/${slug}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                credentials: 'include',
+                body: formData
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to update product');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to update product');
+            }
+
+            return response.json();
+        } catch (error) {
+            throw error;
         }
-
-        return response.json();
     },
 
     deleteProduct: async (slug) => {
