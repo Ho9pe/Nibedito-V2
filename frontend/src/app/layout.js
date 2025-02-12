@@ -10,6 +10,10 @@ import './styles/error.css'
 import './styles/dashboard.css'
 import './styles/category.css'
 import './styles/confirm-dialog.css'
+import './styles/product-filters.css'
+import './styles/products.css'
+import './styles/product-details.css'
+
 
 import AdminRouteHandler from '@/components/admin/common/AdminRouteHandler';
 

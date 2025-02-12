@@ -18,6 +18,8 @@ Frontend application for Nibedito E-commerce platform, built with Next.js 14. Fe
 - Protected routes implementation
 - Form validation with error handling
 - Real-time user feedback
+- Advanced product image zoom functionality
+- Grid/List view toggle for products
 
 ### Authentication
 - User login/register system
@@ -32,6 +34,15 @@ Frontend application for Nibedito E-commerce platform, built with Next.js 14. Fe
 - Verification status display
 - Security settings
 
+### Product Management
+- Product catalog with filtering and sorting
+- Category-based product organization
+- Product variants support
+- Image magnification on hover
+- Detailed product views with variants
+- Price range filtering
+- Multiple product images support
+
 ### Admin Portal
 - Secure admin login
 - Dashboard with statistics
@@ -39,17 +50,28 @@ Frontend application for Nibedito E-commerce platform, built with Next.js 14. Fe
 - Ban/Unban functionality
 - Admin profile section
 - Category management
+- Product management dashboard
+- Variant management system
+- Product image management
 
-
+### Category Management
+- Category creation and editing
+- Category image upload
+- Active/Inactive status toggle
+- Category listing and grid views
+- Category-product associations
 
 ## In Progress Features
-- Product catalog interface
 - Shopping cart implementation
 - Order management system
 - User reviews & ratings
 - Search functionality
 - Wishlist system
+- Payment gateway integration
 
 ## Known Issues
-- User Dashboard is not fully functional
+- Search functionality needs optimization
+- Mobile responsive improvements needed
 - Admin Dashboard is not fully functional
+- Filtering and Sorting is not working properly
+- Image size is not optimized
