@@ -1,11 +1,5 @@
 # Nibedito E-commerce Frontend
 
-## Demo Screenshots
-![Home Page](./public/images/demo/demo_homepage.png)
-![Admin Dashboard](./public/images/demo/demo_adminpanel.png)
-![Product List](./public/images/demo/demo_productlist.png)
-![Product Details](./public/images/demo/demo_product.png)
-
 ## Overview
 Frontend application for Nibedito E-commerce platform, built with Next.js 14. Features a responsive user interface for both customers and administrators.
 

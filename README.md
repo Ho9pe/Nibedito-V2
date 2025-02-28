@@ -1,5 +1,11 @@
 # Nibedito E-commerce Platform
 
+## Demo Screenshots
+![Home Page](./frontend/public/images/demo/demo_homepage.png)
+![Admin Dashboard](./frontend/public/images/demo/demo_adminpanel.png)
+![Product List](./frontend/public/images/demo/demo_productlist.png)
+![Product Details](./frontend/public/images/demo/demo_product.png)
+
 ## Overview
 Nibedito is a full-stack e-commerce platform built with modern web technologies. It provides a seamless shopping experience with features like user authentication, profile management, and admin dashboard.
 
